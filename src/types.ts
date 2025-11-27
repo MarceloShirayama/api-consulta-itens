@@ -115,4 +115,6 @@ export type Item = {
 	quantidade: number;
 	valorUnitarioEstimado: number;
 	valorTotal: number;
+	unidadeMedida: string;
+	materialOuServico: "M" | "S";
 };

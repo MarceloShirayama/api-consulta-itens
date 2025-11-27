@@ -75,9 +75,9 @@ async function main({
 		endDateOfProposalReceiptPeriod,
 	});
 	const { totalRegistros, totalPaginas } = response;
-	logger.warn({ totalRegistros, totalPaginas });
+	logger.info({ totalRegistros, totalPaginas });
 	for (let i = paginaInicial; i <= totalPaginas; i++) {
-		logger.warn(`Processando página ${i} de ${totalPaginas}`);
+		logger.info(`Processando página ${i} de ${totalPaginas}`);
 		// biome-ignore lint/suspicious/noImplicitAnyLet: quero any mesmo
 		let response;
 		try {
@@ -102,6 +102,7 @@ async function main({
 			const dataEncerramentoMenorQueDataInicio =
 				new Date(contract.dataEncerramentoProposta) <
 				new Date(parseBrDateToISO(startDateOfProposalReceiptPeriod));
+
 			if (dataEncerramentoMenorQueDataInicio) {
 				logger.warn(
 					`Contrato com data de encerramento ${contract.dataEncerramentoProposta} menor que a data de início ${startDateOfProposalReceiptPeriod}, pulando para o próximo contrato.`,
@@ -115,9 +116,36 @@ async function main({
 				for (let index = 1; index < 1000; index++) {
 					const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
 					const response = await retryRequest<Item>(url);
-					logger.warn(
-						`${contract.orgaoEntidade.razaoSocial} - ${contract.unidadeOrgao.nomeUnidade} -${contract.dataEncerramentoProposta} - item ${index} - data ${contract.dataEncerramentoProposta}`,
-					);
+					// logger.warn(
+					// 	`${contract.orgaoEntidade.razaoSocial} - ${contract.unidadeOrgao.nomeUnidade} -${contract.dataEncerramentoProposta} - item ${index} - data ${contract.dataEncerramentoProposta}`,
+					// );
+					if (response.data.materialOuServico === "S") {
+						// logger.warn("Item é de serviço, pulando armazenamento.");
+						continue;
+					}
+					const servicoVariacoes = [
+						"SERV",
+						"SRV",
+						"SERVIÇO",
+						"SV",
+						"SERV.",
+						"SERVICO",
+						"SRVC",
+					];
+					// const unidadeDeMedidaNormalizada = response.data.unidadeDeMedida
+					// 	?.trim()
+					// 	.toUpperCase()
+					// 	.normalize("NFD")
+					// 	.replace(/[\u0300-\u036f]/g, "");
+					const unidadeDeMedidaNormalizada = response.data.unidadeMedida
+						?.trim()
+						.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
+						.toUpperCase();
+
+					if (servicoVariacoes.includes(unidadeDeMedidaNormalizada)) {
+						// logger.warn("Unidade de medida é Serviço, pulando armazenamento.");
+						continue;
+					}
 					const item: OutputItens = {
 						orgao: contract.orgaoEntidade.razaoSocial,
 						unidade: `${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`,
@@ -132,7 +160,10 @@ async function main({
 						item: index,
 						descricao: response.data.descricao.toLowerCase(),
 						quantidade: response.data.quantidade,
-						unidadeDeMedida: response.data.unidadeDeMedida,
+						unidadeDeMedida:
+							response.data.unidadeDeMedida ??
+							response.data.unidadeMedida ??
+							"",
 						valorUnitarioEstimado:
 							response.data.valorUnitarioEstimado !== undefined &&
 							response.data.valorUnitarioEstimado !== null
@@ -160,9 +191,9 @@ async function main({
 				// biome-ignore lint/suspicious/noExplicitAny: false positive
 			} catch (error: any) {
 				if (error.response && error.response.status === 404) {
-					logger.warn(
-						"Não foram encontrados mais itens neste contrato, pulando para o próximo contrato",
-					);
+					// logger.warn(
+					// 	"Não foram encontrados mais itens neste contrato, pulando para o próximo contrato",
+					// );
 				} else {
 					logger.error(`Erro na página ${i}:`, error.message);
 					// Retorna a página em que parou
@@ -179,8 +210,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "26-11-2025",
-	endDateOfProposalReceiptPeriod: "28-11-2025",
+	startDateOfProposalReceiptPeriod: "28-11-2025",
+	endDateOfProposalReceiptPeriod: "05-12-2025",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,

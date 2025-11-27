@@ -15,6 +15,7 @@
     "module-alias": "^2.2.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
     "@types/module-alias": "^2.0.4",
     "@types/node": "^24.10.1",
     "tsx": "^4.20.6",

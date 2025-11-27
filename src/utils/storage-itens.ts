@@ -67,7 +67,7 @@ export function storageItens({
 	);
 
 	fs.writeFileSync(filePath, JSON.stringify(uniqueItens, null, 2));
-	logger.info(
-		`Foram gravados ${uniqueItens.length} itens no arquivo ${filePath}`,
-	);
+	// logger.info(
+	// 	`Foram gravados ${uniqueItens.length} itens no arquivo ${filePath}`,
+	// );
 }
