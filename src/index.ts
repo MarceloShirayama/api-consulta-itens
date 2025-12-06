@@ -131,6 +131,7 @@ async function main({
 						"SERV.",
 						"SERVICO",
 						"SRVC",
+						"SER",
 					];
 					// const unidadeDeMedidaNormalizada = response.data.unidadeDeMedida
 					// 	?.trim()
@@ -210,8 +211,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "28-11-2025",
-	endDateOfProposalReceiptPeriod: "05-12-2025",
+	startDateOfProposalReceiptPeriod: "09-12-2025",
+	endDateOfProposalReceiptPeriod: "19-12-2025",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
