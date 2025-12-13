@@ -99,6 +99,9 @@ async function main({
 			// if (contract.modalidadeId !== 6 && contract.modalidadeId !== 8) {
 			// 	continue; // pula para o próximo contrato
 			// }
+			logger.notice(
+				`Processando contrato ${contract.unidadeOrgao.nomeUnidade} - ${contract.numeroCompra}/${contract.anoCompra}`,
+			);
 			const dataEncerramentoMenorQueDataInicio =
 				new Date(contract.dataEncerramentoProposta) <
 				new Date(parseBrDateToISO(startDateOfProposalReceiptPeriod));
@@ -211,8 +214,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "09-12-2025",
-	endDateOfProposalReceiptPeriod: "19-12-2025",
+	startDateOfProposalReceiptPeriod: "15-12-2025",
+	endDateOfProposalReceiptPeriod: "18-12-2025",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
