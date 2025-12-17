@@ -32,9 +32,9 @@ export type OutputItens = {
 	item: number;
 	descricao: string;
 	quantidade: number;
-	unidadeDeMedida: string;
-	valorUnitarioEstimado: number | string;
-	valorTotal: number | string;
+	unidadeMedida: string;
+	valorUnitarioEstimado: number;
+	valorTotal: number;
 	link: string;
 };
 
@@ -141,12 +141,12 @@ async function main({
 					// 	.toUpperCase()
 					// 	.normalize("NFD")
 					// 	.replace(/[\u0300-\u036f]/g, "");
-					const unidadeDeMedidaNormalizada = response.data.unidadeMedida
+					const unidadeMedidaNormalizada = response.data.unidadeMedida
 						?.trim()
 						.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
 						.toUpperCase();
 
-					if (servicoVariacoes.includes(unidadeDeMedidaNormalizada)) {
+					if (servicoVariacoes.includes(unidadeMedidaNormalizada)) {
 						// logger.warn("Unidade de medida é Serviço, pulando armazenamento.");
 						continue;
 					}
@@ -165,22 +165,9 @@ async function main({
 						item: index,
 						descricao: response.data.descricao.toLowerCase().trim(),
 						quantidade: response.data.quantidade,
-						unidadeDeMedida:
-							response.data.unidadeDeMedida ??
-							response.data.unidadeMedida.trim() ??
-							"",
-						valorUnitarioEstimado:
-							response.data.valorUnitarioEstimado !== undefined &&
-							response.data.valorUnitarioEstimado !== null
-								? Number(response.data.valorUnitarioEstimado)
-										.toFixed(2)
-										.replace(".", ",")
-								: "0",
-						valorTotal:
-							response.data.valorTotal !== undefined &&
-							response.data.valorTotal !== null
-								? Number(response.data.valorTotal).toFixed(2).replace(".", ",")
-								: "0",
+						unidadeMedida: response.data.unidadeMedida.trim() ?? "",
+						valorUnitarioEstimado: response.data.valorUnitarioEstimado,
+						valorTotal: response.data.valorTotal,
 						link: `https://pncp.gov.br/app/editais/${contract.orgaoEntidade.cnpj}/${contract.anoCompra}/${contract.sequencialCompra}`,
 					};
 					// Armazena imediatamente o item encontrado

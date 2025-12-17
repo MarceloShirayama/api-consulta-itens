@@ -111,7 +111,6 @@ export enum ContractingModalityCode {
 
 export type Item = {
 	descricao: string;
-	unidadeDeMedida: string;
 	quantidade: number;
 	valorUnitarioEstimado: number;
 	valorTotal: number;
