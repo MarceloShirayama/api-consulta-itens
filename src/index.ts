@@ -1,4 +1,5 @@
 import "./_config/module-alias";
+import { initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 // import { storageContractsInFile } from "@/utils/storage-contracts";
 import { logger } from "@/shared";
@@ -67,6 +68,9 @@ async function main({
 	timeDelay: number;
 	paginaInicial: number;
 }) {
+	await initializeDatabase();
+	logger.info("Banco de dados inicializado.");
+
 	const getContracts = new GetContracts();
 	const response = await getContracts.execute({
 		codigoModalidadeContratacao,
@@ -94,6 +98,13 @@ async function main({
 			);
 		}
 		const { data: contractsData } = response;
+		if (!Array.isArray(contractsData)) {
+			console.warn(
+				`Página ${i}: contractsData não é um array, pulando página. Response:`,
+				JSON.stringify(response, null, 2),
+			);
+			continue; // pula para a próxima página
+		}
 		const baseUrl = process.env.PNCP_INTEGRATION_URL;
 		for (const contract of contractsData) {
 			// if (contract.modalidadeId !== 6 && contract.modalidadeId !== 8) {
@@ -171,7 +182,7 @@ async function main({
 						link: `https://pncp.gov.br/app/editais/${contract.orgaoEntidade.cnpj}/${contract.anoCompra}/${contract.sequencialCompra}`,
 					};
 					// Armazena imediatamente o item encontrado
-					storageItens({
+					await storageItens({
 						codigoModalidadeContratacao,
 						itens: [item],
 						startDateOfProposalReceiptPeriod,
@@ -203,7 +214,7 @@ const inicio = Date.now();
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
 	startDateOfProposalReceiptPeriod: "18-12-2025",
-	endDateOfProposalReceiptPeriod: "19-12-2025",
+	endDateOfProposalReceiptPeriod: "18-12-2025",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
