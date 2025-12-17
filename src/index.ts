@@ -151,22 +151,23 @@ async function main({
 						continue;
 					}
 					const item: OutputItens = {
-						orgao: contract.orgaoEntidade.razaoSocial,
-						unidade: `${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`,
-						municipio: contract.unidadeOrgao.municipioNome,
+						orgao: contract.orgaoEntidade.razaoSocial.trim(),
+						unidade:
+							`${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`.trim(),
+						municipio: contract.unidadeOrgao.municipioNome.trim(),
 						compra: `${contract.numeroCompra}/${contract.anoCompra}`,
 						dataEncerramentoProposta: formatarData(
 							contract.dataEncerramentoProposta,
-						),
-						modalidade: contract.modalidadeNome,
-						disputa: contract.modoDisputaNome,
+						).trim(),
+						modalidade: contract.modalidadeNome.trim(),
+						disputa: contract.modoDisputaNome.trim(),
 						registroPreco: contract.srp ? "SIM" : "NÃO",
 						item: index,
-						descricao: response.data.descricao.toLowerCase(),
+						descricao: response.data.descricao.toLowerCase().trim(),
 						quantidade: response.data.quantidade,
 						unidadeDeMedida:
 							response.data.unidadeDeMedida ??
-							response.data.unidadeMedida ??
+							response.data.unidadeMedida.trim() ??
 							"",
 						valorUnitarioEstimado:
 							response.data.valorUnitarioEstimado !== undefined &&
@@ -214,8 +215,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "15-12-2025",
-	endDateOfProposalReceiptPeriod: "18-12-2025",
+	startDateOfProposalReceiptPeriod: "18-12-2025",
+	endDateOfProposalReceiptPeriod: "19-12-2025",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
