@@ -77,8 +77,8 @@ export async function storageItens({
 					item.link,
 				],
 			);
+			logger.info(`Item ${item.item} armazenado no banco de dados.`);
 		}
-		logger.info(`Armazenados ${itens.length} itens no banco de dados.`);
 
 		// Criar JSON como antes
 		const noticeStoragePath = path.join(process.cwd(), folderToStorage);

@@ -212,9 +212,9 @@ async function main({
 const inicio = Date.now();
 
 main({
-	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "18-12-2025",
-	endDateOfProposalReceiptPeriod: "18-12-2025",
+	codigoModalidadeContratacao: ContractingModalityCode["Pregão - Eletrônico"],
+	startDateOfProposalReceiptPeriod: "22-12-2025",
+	endDateOfProposalReceiptPeriod: "02-01-2026",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
