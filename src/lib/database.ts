@@ -13,6 +13,16 @@ export async function initializeDatabase() {
 	// Cria schema se não existir
 	await db.none(`CREATE SCHEMA IF NOT EXISTS licitacao;`);
 
+	// Cria tipo enum para status_compra
+	await db.none(`
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON t.typnamespace = n.oid WHERE t.typname = 'status_compra_enum' AND n.nspname = 'licitacao') THEN
+				CREATE TYPE licitacao.status_compra_enum AS ENUM ('HABILITADO', 'HOMOLOGADO', 'EM_ANALISE', 'PROPOSTA', 'PROPOSTA_ACEITA', 'DISPUTA', 'EM_ENTREGA', 'EM_PAGTO', 'PAGO', 'NAO_GANHAMOS', 'NAO_PARTICIPAMOS', 'EM_RECURSO');
+			END IF;
+		END $$;
+	`);
+
 	// Cria tabela para contratos (opcional, mas útil para integridade)
 	await db.none(`
 		CREATE TABLE IF NOT EXISTS licitacao.contratos (
@@ -51,6 +61,15 @@ export async function initializeDatabase() {
 			valor_unitario_estimado DECIMAL(15,4) NOT NULL,
 			valor_total DECIMAL(15,4) NOT NULL,
 			link TEXT NOT NULL,
+			valor_contratado DECIMAL(15,4),
+			observacoes TEXT,
+			data_empenho DATE,
+			numero_empenho TEXT,
+			data_entrega DATE,
+			data_pagamento DATE,
+			data_previsao_pagamento DATE,
+			numero_nf_venda TEXT,
+			status_compra licitacao.status_compra_enum DEFAULT 'NAO_PARTICIPAMOS',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(orgao, compra, modalidade, item)

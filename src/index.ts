@@ -37,6 +37,15 @@ export type OutputItens = {
 	valorUnitarioEstimado: number;
 	valorTotal: number;
 	link: string;
+	valorContratado?: number;
+	observacoes?: string;
+	dataEmpenho?: string;
+	numeroEmpenho?: string;
+	dataEntrega?: string;
+	dataPagamento?: string;
+	dataPrevisaoPagamento?: string;
+	numeroNfVenda?: string;
+	statusCompra?: string;
 };
 
 function delay(ms: number) {
@@ -212,9 +221,9 @@ async function main({
 const inicio = Date.now();
 
 main({
-	codigoModalidadeContratacao: ContractingModalityCode["Pregão - Eletrônico"],
-	startDateOfProposalReceiptPeriod: "22-12-2025",
-	endDateOfProposalReceiptPeriod: "02-01-2026",
+	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
+	startDateOfProposalReceiptPeriod: "27-12-2025",
+	endDateOfProposalReceiptPeriod: "27-12-2026",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
