@@ -2,22 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { db } from "@/lib/database";
 import { logger } from "@/shared";
-import type { OutputItens } from "..";
-
-function formatDateToYYMMDD(dateStr: string) {
-	try {
-		const [day, month, year] = dateStr.split("-");
-		if (year && month && day) {
-			return `${year.slice(2)}-${month}-${day}`;
-		}
-		// return "Arquivo com data inválida";
-		throw new Error("Data inválida");
-		// biome-ignore lint/suspicious/noExplicitAny: <eu quero any mesmo>
-	} catch (error: any) {
-		logger.error(`Erro ao formatar data: ${dateStr} - ${error}`, error.stack);
-		return "data-invalida";
-	}
-}
+import type { OutputItens } from "@/types";
+import { formatDateToYYMMDD } from "@/utils";
 
 export async function storageItens({
 	codigoModalidadeContratacao,

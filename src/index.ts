@@ -1,66 +1,12 @@
-import "./_config/module-alias";
 import { initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 // import { storageContractsInFile } from "@/utils/storage-contracts";
 import { logger } from "@/shared";
-import { ContractingModalityCode, type Item } from "@/types";
+import { ContractingModalityCode, type Item, type OutputItens } from "@/types";
 import { GetContracts } from "@/use-cases/get-contracts";
 import { storageItens } from "@/utils/storage-itens";
-
-export type OutputContracts = {
-	orgaoEntidade: string;
-	cnpj: string;
-	nomeUnidade: string;
-	municipioNome: string;
-	anoCompra: number;
-	sequencialCompra: number;
-	modalidadeNome: string;
-	modoDisputaNome: string;
-	registroDePreco: string;
-	dataAberturaProposta: string;
-	dataEncerramentoProposta: string;
-};
-
-export type OutputItens = {
-	orgao: string;
-	unidade: string;
-	municipio: string;
-	compra: string;
-	dataEncerramentoProposta: string;
-	modalidade: string;
-	disputa: string;
-	registroPreco: string;
-	item: number;
-	descricao: string;
-	quantidade: number;
-	unidadeMedida: string;
-	valorUnitarioEstimado: number;
-	valorTotal: number;
-	link: string;
-	valorContratado?: number;
-	observacoes?: string;
-	dataEmpenho?: string;
-	numeroEmpenho?: string;
-	dataEntrega?: string;
-	dataPagamento?: string;
-	dataPrevisaoPagamento?: string;
-	numeroNfVenda?: string;
-	statusCompra?: string;
-};
-
-function delay(ms: number) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function formatarData(dataIso: string): string {
-	const [ano, mes, dia] = dataIso.split("T")[0].split("-");
-	return `${ano}-${mes}-${dia}`;
-}
-
-function parseBrDateToISO(dateBr: string): string {
-	const [dia, mes, ano] = dateBr.split("-");
-	return `${ano}-${mes}-${dia}T00:00:00`;
-}
+import "./_config/module-alias";
+import { delay, formatarData, parseBrDateToISO } from "@/utils";
 
 async function main({
 	codigoModalidadeContratacao,
@@ -91,7 +37,7 @@ async function main({
 	logger.info({ totalRegistros, totalPaginas });
 	for (let i = paginaInicial; i <= totalPaginas; i++) {
 		logger.info(`Processando página ${i} de ${totalPaginas}`);
-		// biome-ignore lint/suspicious/noImplicitAnyLet: quero any mesmo
+		// biome-ignore lint/suspicious/noImplicitAnyLet: <queo any mesmo>
 		let response;
 		try {
 			response = await getContracts.execute({
@@ -112,13 +58,11 @@ async function main({
 				`Página ${i}: contractsData não é um array, pulando página. Response:`,
 				JSON.stringify(response, null, 2),
 			);
+			logger.warn(`Página ${i}: contractsData não é um array, pulando página.`);
 			continue; // pula para a próxima página
 		}
 		const baseUrl = process.env.PNCP_INTEGRATION_URL;
 		for (const contract of contractsData) {
-			// if (contract.modalidadeId !== 6 && contract.modalidadeId !== 8) {
-			// 	continue; // pula para o próximo contrato
-			// }
 			logger.notice(
 				`Processando contrato ${contract.unidadeOrgao.nomeUnidade} - ${contract.numeroCompra}/${contract.anoCompra}`,
 			);
@@ -133,19 +77,13 @@ async function main({
 				continue; // pula para o próximo contrato
 			}
 			if (contract.srp === true) {
+				logger.warn("Contrato é de registro de preço, pulando armazenamento.");
 				continue; // se for registro de preço pula para o próximo contrato
 			}
 			try {
 				for (let index = 1; index < 1000; index++) {
 					const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
 					const response = await retryRequest<Item>(url);
-					// logger.warn(
-					// 	`${contract.orgaoEntidade.razaoSocial} - ${contract.unidadeOrgao.nomeUnidade} -${contract.dataEncerramentoProposta} - item ${index} - data ${contract.dataEncerramentoProposta}`,
-					// );
-					if (response.data.materialOuServico === "S") {
-						// logger.warn("Item é de serviço, pulando armazenamento.");
-						continue;
-					}
 					const servicoVariacoes = [
 						"SERV",
 						"SRV",
@@ -156,18 +94,18 @@ async function main({
 						"SRVC",
 						"SER",
 					];
-					// const unidadeDeMedidaNormalizada = response.data.unidadeDeMedida
-					// 	?.trim()
-					// 	.toUpperCase()
-					// 	.normalize("NFD")
-					// 	.replace(/[\u0300-\u036f]/g, "");
 					const unidadeMedidaNormalizada = response.data.unidadeMedida
 						?.trim()
 						.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
 						.toUpperCase();
 
-					if (servicoVariacoes.includes(unidadeMedidaNormalizada)) {
-						// logger.warn("Unidade de medida é Serviço, pulando armazenamento.");
+					if (
+						response.data.materialOuServico === "S" ||
+						servicoVariacoes.includes(unidadeMedidaNormalizada)
+					) {
+						logger.warn(
+							`Pulando materialOuServico ${response.data.materialOuServico} | unidadeMedida ${response.data.unidadeMedida} | ${response.data.descricao}`,
+						);
 						continue;
 					}
 					const item: OutputItens = {
@@ -222,8 +160,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "27-12-2025",
-	endDateOfProposalReceiptPeriod: "27-12-2026",
+	startDateOfProposalReceiptPeriod: "26-01-2026",
+	endDateOfProposalReceiptPeriod: "06-02-2026",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,

@@ -11,9 +11,5 @@
 		"enabled": true,
 		"rules": { "recommended": true }
 	},
-	"javascript": { "formatter": { "quoteStyle": "double" } },
-	"assist": {
-		"enabled": true,
-		"actions": { "source": { "organizeImports": "on" } }
-	}
+	"javascript": { "formatter": { "quoteStyle": "double" } }
 }

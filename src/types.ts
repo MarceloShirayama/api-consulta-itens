@@ -117,3 +117,44 @@ export type Item = {
 	unidadeMedida: string;
 	materialOuServico: "M" | "S";
 };
+
+export type OutputContracts = {
+	orgaoEntidade: string;
+	cnpj: string;
+	nomeUnidade: string;
+	municipioNome: string;
+	anoCompra: number;
+	sequencialCompra: number;
+	modalidadeNome: string;
+	modoDisputaNome: string;
+	registroDePreco: string;
+	dataAberturaProposta: string;
+	dataEncerramentoProposta: string;
+};
+
+export type OutputItens = {
+	orgao: string;
+	unidade: string;
+	municipio: string;
+	compra: string;
+	dataEncerramentoProposta: string;
+	modalidade: string;
+	disputa: string;
+	registroPreco: string;
+	item: number;
+	descricao: string;
+	quantidade: number;
+	unidadeMedida: string;
+	valorUnitarioEstimado: number;
+	valorTotal: number;
+	link: string;
+	valorContratado?: number;
+	observacoes?: string;
+	dataEmpenho?: string;
+	numeroEmpenho?: string;
+	dataEntrega?: string;
+	dataPagamento?: string;
+	dataPrevisaoPagamento?: string;
+	numeroNfVenda?: string;
+	statusCompra?: string;
+};
