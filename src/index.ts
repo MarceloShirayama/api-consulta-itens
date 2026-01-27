@@ -195,8 +195,9 @@ async function main({
 			});
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
+			const apiErrorMsg = error.response?.data?.message || error.message;
 			throw new Error(
-				`Erro na página ${i}. Reinicie a partir desta página. Mensagem original: ${error.message}`,
+				`Erro na página ${i}. Reinicie a partir desta página. Mensagem original: ${apiErrorMsg}`,
 			);
 		}
 
@@ -215,12 +216,10 @@ async function main({
 				await processContract(contract, config, itemRepository);
 				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 			} catch (error: any) {
-				logger.error(
-					`Erro processando contrato na página ${i}:`,
-					error.message,
-				);
+				const apiErrorMsg = error.response?.data?.message || error.message;
+				logger.error(`Erro processando contrato na página ${i}:`, apiErrorMsg);
 				throw new Error(
-					`Erro fatal na página ${i} ao processar contrato. ${error.message}`,
+					`Erro fatal na página ${i} ao processar contrato. ${apiErrorMsg}`,
 				);
 			}
 		}
@@ -246,7 +245,9 @@ main({
 	})
 	.catch((error) => {
 		logger.error("Ocorreu um erro ao executar o processo", {
-			message: error.message,
+			message: error.response?.data?.message || error.message,
+			code: error.code,
+			status: error.status,
 			stack: error.stack,
 		});
 	});
