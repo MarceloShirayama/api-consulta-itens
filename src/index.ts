@@ -235,6 +235,7 @@ main({
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
+	uf: undefined,
 })
 	.then(() => {
 		logger.warn("Processo finalizado");
