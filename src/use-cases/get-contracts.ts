@@ -1,5 +1,5 @@
 import { retryRequest } from "@/lib/retryRequest";
-import { logger } from "@/shared";
+
 import type { APIResponse } from "@/types";
 
 export class GetContracts {
@@ -10,23 +10,25 @@ export class GetContracts {
 		page,
 		startDateOfProposalReceiptPeriod,
 		endDateOfProposalReceiptPeriod,
+		uf,
 	}: {
 		codigoModalidadeContratacao: number;
 		page: number;
 		startDateOfProposalReceiptPeriod?: string;
 		endDateOfProposalReceiptPeriod: string;
+		uf: string;
 	}): Promise<APIResponse> {
 		const formatesEndDateOfProposalReceiptPeriod = this.#formatDate(
 			endDateOfProposalReceiptPeriod,
 		);
 
-		let url = `${this.#baseUrl}?dataFinal=${formatesEndDateOfProposalReceiptPeriod}&uf=SP&codigoModalidadeContratacao=${codigoModalidadeContratacao}&pagina=${page}`;
+		let url = `${this.#baseUrl}?dataFinal=${formatesEndDateOfProposalReceiptPeriod}&uf=${uf}&codigoModalidadeContratacao=${codigoModalidadeContratacao}&pagina=${page}`;
 
 		if (startDateOfProposalReceiptPeriod) {
 			const formatesStartDateOfProposalReceiptPeriod = this.#formatDate(
 				startDateOfProposalReceiptPeriod,
 			);
-			url = `${this.#baseUrl}?dataInicial=${formatesStartDateOfProposalReceiptPeriod}&dataFinal=${formatesEndDateOfProposalReceiptPeriod}&uf=SP&codigoModalidadeContratacao=${codigoModalidadeContratacao}&pagina=${page}`;
+			url = `${this.#baseUrl}?dataInicial=${formatesStartDateOfProposalReceiptPeriod}&dataFinal=${formatesEndDateOfProposalReceiptPeriod}&uf=${uf}&codigoModalidadeContratacao=${codigoModalidadeContratacao}&pagina=${page}`;
 		}
 
 		// logger.warn(url);
