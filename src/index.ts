@@ -26,6 +26,12 @@ interface MainConfig {
 	uf?: string;
 }
 
+interface ProcessingStats {
+	totalRetornados: number;
+	totalPulados: number;
+	totalGravados: number;
+}
+
 function convertItemDataToOutputItem(
 	contract: Contract,
 	index: number,
@@ -59,11 +65,15 @@ async function fetchAndProcessItem(
 	config: MainConfig,
 	baseUrl: string | undefined,
 	itemRepository: IItensRepository,
+	stats: ProcessingStats,
 ) {
 	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
 
 	const response = await retryRequest<Item>(url);
 	const ItemData = response.data;
+
+	// Incrementa o total de itens retornados
+	stats.totalRetornados++;
 
 	const servicoVariacoes = [
 		"SERV",
@@ -87,16 +97,14 @@ async function fetchAndProcessItem(
 		logger.warn(
 			`Pulando materialOuServico ${ItemData.materialOuServico} | unidadeMedida ${ItemData.unidadeMedida} | ${ItemData.descricao}`,
 		);
+		// Incrementa o total de itens pulados
+		stats.totalPulados++;
 		saveItemsToJSON({
 			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
-			itens: [
-				convertItemDataToOutputItem(contract, index, ItemData),
-			],
-			startDateOfProposalReceiptPeriod:
-				config.startDateOfProposalReceiptPeriod,
-			endDateOfProposalReceiptPeriod:
-				config.endDateOfProposalReceiptPeriod,
-			folderToStorage: '_itens_skipped',
+			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
+			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
+			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
+			folderToStorage: "_itens_skipped",
 		});
 		return;
 	}
@@ -109,6 +117,8 @@ async function fetchAndProcessItem(
 
 	// Armazena imediatamente o item encontrado
 	await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
+	// Incrementa o total de itens gravados
+	stats.totalGravados++;
 	await saveItemsToJSON({
 		codigoModalidadeContratacao: config.codigoModalidadeContratacao,
 		itens: [item],
@@ -124,6 +134,7 @@ async function processContract(
 	contract: Contract,
 	config: MainConfig,
 	itemRepository: IItensRepository,
+	stats: ProcessingStats,
 ) {
 	const baseUrl = process.env.PNCP_INTEGRATION_URL;
 	logger.notice(
@@ -154,6 +165,7 @@ async function processContract(
 				config,
 				baseUrl,
 				itemRepository,
+				stats,
 			);
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
@@ -182,6 +194,13 @@ async function main({
 	logger.info("Banco de dados inicializado.");
 
 	const itemRepository = new PostgresItensRepository();
+
+	// Inicializa o objeto de estatísticas
+	const stats: ProcessingStats = {
+		totalRetornados: 0,
+		totalPulados: 0,
+		totalGravados: 0,
+	};
 
 	const getContracts = new GetContracts();
 	// Initial request to get total pages
@@ -237,7 +256,7 @@ async function main({
 
 		for (const contract of contractsData) {
 			try {
-				await processContract(contract, config, itemRepository);
+				await processContract(contract, config, itemRepository, stats);
 				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 			} catch (error: any) {
 				const apiErrorMsg = error.response?.data?.message || error.message;
@@ -248,6 +267,8 @@ async function main({
 			}
 		}
 	}
+
+	return stats;
 }
 
 const inicio = Date.now();
@@ -255,14 +276,19 @@ const inicio = Date.now();
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
 	startDateOfProposalReceiptPeriod: "29-01-2026",
-	endDateOfProposalReceiptPeriod: "13-02-2026",
+	endDateOfProposalReceiptPeriod: "02-02-2026",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,
 	uf: undefined,
 })
-	.then(() => {
+	.then((stats) => {
 		logger.warn("Processo finalizado");
+		logger.warn("=".repeat(60));
+		logger.warn(`Total de itens retornados da API: ${stats.totalRetornados}`);
+		logger.warn(`Total de itens pulados (serviços): ${stats.totalPulados}`);
+		logger.warn(`Total de itens gravados: ${stats.totalGravados}`);
+		logger.warn("=".repeat(60));
 		const fim = Date.now();
 		const duracao = fim - inicio;
 		const duracaoEmMinutos = (duracao / 1000 / 60).toFixed(2);
