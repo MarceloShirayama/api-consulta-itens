@@ -84,7 +84,7 @@ async function fetchAndProcessItem(
 	};
 
 	// Armazena imediatamente o item encontrado
-	await saveItemsToDatabase([item], itemRepository);
+	await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
 	await saveItemsToJSON({
 		codigoModalidadeContratacao: config.codigoModalidadeContratacao,
 		itens: [item],

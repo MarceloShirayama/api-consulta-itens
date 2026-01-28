@@ -5,21 +5,34 @@ import { logger } from "@/shared";
 import type { OutputItens } from "@/types";
 import { formatDateToYYMMDD } from "@/utils/formatDateToYYMMDD";
 
-export async function saveItemsToDatabase(
-	itens: OutputItens[],
-	itensRepository: IItensRepository,
-) {
-	try {
-		for (const item of itens) {
-			await itensRepository.upsertItem(item);
-			logger.info(`Item ${item.item} armazenado no banco de dados.`);
+/**
+ * Salva os itens no banco de dados.
+ * @param repositories - Repositórios necessários para a operação.
+ * @param params - Parâmetros da operação.
+ * @param params.itens - Itens a serem armazenados.
+ */
+export const saveItemsToDatabase =
+	(repositories: { itens: IItensRepository }) =>
+	async (params: { itens: OutputItens[] }) => {
+		try {
+			for (const item of params.itens) {
+				await repositories.itens.upsertItem(item);
+				logger.info(`Item ${item.item} armazenado no banco de dados.`);
+			}
+		} catch (error) {
+			logger.error("Erro ao armazenar itens no banco de dados:", error);
+			throw error;
 		}
-	} catch (error) {
-		logger.error("Erro ao armazenar itens no banco de dados:", error);
-		throw error;
-	}
-}
+	};
 
+/**
+ * Salva os itens em um arquivo JSON.
+ * @param codigoModalidadeContratacao - Código da modalidade de contratação.
+ * @param itens - Itens a serem armazenados.
+ * @param startDateOfProposalReceiptPeriod - Data inicial do período de recebimento de propostas.
+ * @param endDateOfProposalReceiptPeriod - Data final do período de recebimento de propostas.
+ * @param folderToStorage - Pasta onde o arquivo JSON será armazenado.
+ */
 export async function saveItemsToJSON({
 	codigoModalidadeContratacao,
 	itens,
@@ -72,21 +85,4 @@ export async function saveItemsToJSON({
 		logger.error("Erro ao armazenar itens no arquivo JSON:", error);
 		// Não lançar erro aqui para não parar o processo se apenas o backup JSON falhar
 	}
-}
-
-import { PostgresItensRepository } from "@/repositories/ItensRepository";
-
-// Manter a função original por compatibilidade (opcional, mas recomendada se usada em outros lugares)
-// Ou removê-la se tiver certeza que só é usada no index.ts
-export async function storageItens(params: {
-	codigoModalidadeContratacao: number;
-	itens: OutputItens[];
-	startDateOfProposalReceiptPeriod: string;
-	endDateOfProposalReceiptPeriod: string;
-	folderToStorage: string;
-}) {
-	const repo = new PostgresItensRepository();
-	// Chama as duas novas funções
-	await saveItemsToDatabase(params.itens, repo);
-	await saveItemsToJSON(params);
 }
