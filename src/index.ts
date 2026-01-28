@@ -230,8 +230,8 @@ const inicio = Date.now();
 
 main({
 	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "26-01-2026",
-	endDateOfProposalReceiptPeriod: "06-02-2026",
+	startDateOfProposalReceiptPeriod: "29-01-2026",
+	endDateOfProposalReceiptPeriod: "13-02-2026",
 	folderToStorage: "_itens",
 	timeDelay: 250,
 	paginaInicial: 1,

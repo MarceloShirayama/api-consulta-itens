@@ -97,16 +97,16 @@ export enum ContractingModalityCode {
 ● (código = 12) Credenciamento 
 ● (código = 13) Leilão - Presencial 
 */
-	"Leilão - Eletrônico" = 1,
-	"Diálogo Competitivo" = 2,
-	Concurso = 3,
-	"Concorrência - Eletrônica" = 4,
-	"Concorrência - Presencial" = 5,
+	// "Leilão - Eletrônico" = 1,
+	// "Diálogo Competitivo" = 2,
+	// Concurso = 3,
+	// "Concorrência - Eletrônica" = 4,
+	// "Concorrência - Presencial" = 5,
 	"Pregão - Eletrônico" = 6,
-	"Pregão - Presencial" = 7,
+	// "Pregão - Presencial" = 7,
 	"Dispensa de Licitação" = 8,
-	Inexigibilidade = 9,
-	"Manifestação de Interesse" = 10,
+	// Inexigibilidade = 9,
+	// "Manifestação de Interesse" = 10,
 }
 
 export type Item = {
