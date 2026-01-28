@@ -38,12 +38,7 @@ export class GetContracts {
 	}
 
 	#formatDate(OriginalDate: string): string {
-		const partes = OriginalDate.split("-");
-		const day = Number.parseInt(partes[0]);
-		const month = Number.parseInt(partes[1]);
-		const year = Number.parseInt(partes[2]);
-
-		const formattedDate = `${year}${month.toString().padStart(2, "0")}${day.toString().padStart(2, "0")}`;
-		return formattedDate;
+		const [year, month, day] = OriginalDate.split("-");
+		return `${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`;
 	}
 }

@@ -6,14 +6,14 @@ import { logger } from "@/shared";
 export async function retryRequest<T = any>(
 	url: string,
 ): Promise<AxiosResponse<T>> {
-	// logger.info(`Starting retryRequest for ${url}`);
 	let attempt = 0;
 	const maxRetries = 5;
 	// biome-ignore lint/suspicious/noExplicitAny: eu quero any mesmo
 	let lastError: any;
 	while (attempt < maxRetries) {
 		try {
-			const result = await axios.get<T>(url);
+			logger.notice(`Iniciando requisição: ${url}`);
+			const result = await axios.get<T>(url, { timeout: 30000 });
 			if (attempt > 0) {
 				logger.warn(
 					`Requisição bem sucedida na tentativa ${attempt + 1} (url: ${url})`,
@@ -30,7 +30,7 @@ export async function retryRequest<T = any>(
 			attempt++;
 			if (attempt < maxRetries) {
 				logger.warn(
-					`Requisição falhou (tentativa ${attempt}) (url: ${url}). Retrying in ${2000 * attempt}ms...`,
+					`Requisição falhou (tentativa ${attempt}) (url: ${url}). Motivo: ${error.message}. Retrying in ${2000 * attempt}ms...`,
 				);
 				// Espera antes de tentar novamente
 				await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));

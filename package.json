@@ -8,13 +8,16 @@
 	"main": "index.js",
 	"scripts": {
 		"dev": "tsx watch --env-file .env src/index.ts",
+		"start": "tsx --env-file .env src/index.ts",
 		"format": "npx @biomejs/biome format --write",
 		"lint": "npx @biomejs/biome lint --write",
 		"check": "npx @biomejs/biome check --write"
 	},
 	"dependencies": {
+		"@types/inquirer": "8.2.12",
 		"axios": "^1.13.2",
 		"axios-retry": "^4.5.0",
+		"inquirer": "8.2.7",
 		"module-alias": "^2.2.3",
 		"pg-promise": "^12.3.0"
 	},

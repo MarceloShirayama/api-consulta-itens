@@ -1,3 +1,4 @@
+import inquirer from "inquirer";
 import { initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 // import { storageContractsInFile } from "@/utils/storage-contracts";
@@ -229,6 +230,7 @@ async function main({
 
 		let pageResponse: APIResponse;
 		try {
+			logger.notice(`Buscando contratos da página ${i}...`);
 			pageResponse = await getContracts.execute({
 				codigoModalidadeContratacao,
 				page: i,
@@ -271,18 +273,154 @@ async function main({
 	return stats;
 }
 
-const inicio = Date.now();
+// promptUser function to gather inputs
+async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
+	const questions = [
+		{
+			type: "list",
+			name: "codigoModalidadeContratacao",
+			message: "Escolha a modalidade de contratação:",
+			choices: Object.entries(ContractingModalityCode)
+				.filter(([key]) => Number.isNaN(Number(key))) // Filter out numeric keys from enum
+				.map(([key, value]) => ({ name: key, value: value })),
+			default: ContractingModalityCode["Dispensa de Licitação"],
+		},
+		{
+			type: "input",
+			name: "startDateOfProposalReceiptPeriod",
+			message:
+				"Digite a data de INÍCIO do período de recebimento de propostas (DD-MM-YYYY):",
+			validate: (input: string) => {
+				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+				if (!match) {
+					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
+				}
+				const [_, day, month, year] = match;
+				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				if (
+					date.getUTCFullYear() === Number.parseInt(year) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month) &&
+					date.getUTCDate() === Number.parseInt(day)
+				) {
+					const today = new Date();
+					today.setUTCHours(0, 0, 0, 0);
+					if (date < today) {
+						return "A data inicial não pode ser menor que a data atual.";
+					}
+					return true;
+				}
+				return "Data inválida (ex: 29/02 em ano não bissexto).";
+			},
+			default: (() => {
+				const now = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
+				const dia = now.getDate().toString().padStart(2, "0");
+				const mes = (now.getMonth() + 1).toString().padStart(2, "0");
+				const ano = now.getFullYear();
+				return `${dia}-${mes}-${ano}`;
+			})(),
+		},
+		{
+			type: "input",
+			name: "endDateOfProposalReceiptPeriod",
+			message:
+				"Digite a data de FIM do período de recebimento de propostas (DD-MM-YYYY):",
+			validate: (input: string, answers: any) => {
+				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+				if (!match) {
+					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
+				}
+				const [_, day, month, year] = match;
+				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				if (
+					date.getUTCFullYear() === Number.parseInt(year) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month) &&
+					date.getUTCDate() === Number.parseInt(day)
+				) {
+					const today = new Date();
+					today.setUTCHours(0, 0, 0, 0);
+					if (date < today) {
+						return "A data final não pode ser menor que a data atual.";
+					}
+					const [startDay, startMonth, startYear] = answers.startDateOfProposalReceiptPeriod.split("-");
+					const startDate = new Date(`${startYear}-${startMonth}-${startDay}T12:00:00Z`);
+					if (date < startDate) {
+						return "A data final não pode ser menor que a data inicial.";
+					}
+					return true;
+				}
+				return "Data inválida.";
+			},
+			default: (answers: any) => {
+				// Converte a data de início (DD-MM-YYYY) para Date
+				const [day, month, year] = answers.startDateOfProposalReceiptPeriod.split("-");
+				const startDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				// Adiciona 10 dias
+				const endDate = new Date(startDate.getTime() + 10 * 24 * 60 * 60 * 1000);
+				// Formata a data para DD-MM-YYYY
+				const dia = endDate.getUTCDate().toString().padStart(2, "0");
+				const mes = (endDate.getUTCMonth() + 1).toString().padStart(2, "0");
+				const ano = endDate.getUTCFullYear();
+				return `${dia}-${mes}-${ano}`;
+			},
+		},
+		{
+			type: "input",
+			name: "folderToStorage",
+			message: "Pasta para armazenamento dos itens:",
+			default: "_itens",
+		},
+		{
+			type: "number",
+			name: "timeDelay",
+			message: "Delay entre requisições (ms):",
+			default: 250,
+		},
+		{
+			type: "number",
+			name: "paginaInicial",
+			message: "Página inicial:",
+			default: 1,
+		},
+		{
+			type: "input",
+			name: "uf",
+			message: "UF (Opcional, deixe em branco para todas):",
+			default: "SP",
+		},
+	];
 
-main({
-	codigoModalidadeContratacao: ContractingModalityCode["Dispensa de Licitação"],
-	startDateOfProposalReceiptPeriod: "29-01-2026",
-	endDateOfProposalReceiptPeriod: "02-02-2026",
-	folderToStorage: "_itens",
-	timeDelay: 250,
-	paginaInicial: 1,
-	uf: undefined,
-})
-	.then((stats) => {
+	// biome-ignore lint/suspicious/noExplicitAny: inquirer types issues
+	const answers: any = await inquirer.prompt(questions);
+
+	const convertToISO = (dateBr: string) => {
+		const [day, month, year] = dateBr.split("-");
+		return `${year}-${month}-${day}`;
+	};
+
+	return {
+		codigoModalidadeContratacao: answers.codigoModalidadeContratacao,
+		startDateOfProposalReceiptPeriod: convertToISO(
+			answers.startDateOfProposalReceiptPeriod,
+		),
+		endDateOfProposalReceiptPeriod: convertToISO(
+			answers.endDateOfProposalReceiptPeriod,
+		),
+		folderToStorage: answers.folderToStorage,
+		timeDelay: answers.timeDelay,
+		paginaInicial: answers.paginaInicial,
+		uf: answers.uf === "" ? undefined : answers.uf,
+	};
+}
+
+(async () => {
+	try {
+		const config = await promptUser();
+
+		const inicio = Date.now();
+		logger.info({ message: "Iniciando processo com as configurações", config });
+
+		const stats = await main(config);
+
 		logger.warn("Processo finalizado");
 		logger.warn("=".repeat(60));
 		logger.warn(`Total de itens retornados da API: ${stats.totalRetornados}`);
@@ -293,12 +431,13 @@ main({
 		const duracao = fim - inicio;
 		const duracaoEmMinutos = (duracao / 1000 / 60).toFixed(2);
 		logger.warn(`Duração do processo: ${duracaoEmMinutos} minutos`);
-	})
-	.catch((error) => {
+		// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
+	} catch (error: any) {
 		logger.error("Ocorreu um erro ao executar o processo", {
 			message: error.response?.data?.message || error.message,
 			code: error.code,
 			status: error.status,
 			stack: error.stack,
 		});
-	});
+	}
+})();
