@@ -341,8 +341,11 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 					if (date < today) {
 						return "A data final não pode ser menor que a data atual.";
 					}
-					const [startDay, startMonth, startYear] = answers.startDateOfProposalReceiptPeriod.split("-");
-					const startDate = new Date(`${startYear}-${startMonth}-${startDay}T12:00:00Z`);
+					const [startDay, startMonth, startYear] =
+						answers.startDateOfProposalReceiptPeriod.split("-");
+					const startDate = new Date(
+						`${startYear}-${startMonth}-${startDay}T12:00:00Z`,
+					);
 					if (date < startDate) {
 						return "A data final não pode ser menor que a data inicial.";
 					}
@@ -352,10 +355,13 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 			},
 			default: (answers: any) => {
 				// Converte a data de início (DD-MM-YYYY) para Date
-				const [day, month, year] = answers.startDateOfProposalReceiptPeriod.split("-");
+				const [day, month, year] =
+					answers.startDateOfProposalReceiptPeriod.split("-");
 				const startDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
 				// Adiciona 10 dias
-				const endDate = new Date(startDate.getTime() + 10 * 24 * 60 * 60 * 1000);
+				const endDate = new Date(
+					startDate.getTime() + 10 * 24 * 60 * 60 * 1000,
+				);
 				// Formata a data para DD-MM-YYYY
 				const dia = endDate.getUTCDate().toString().padStart(2, "0");
 				const mes = (endDate.getUTCMonth() + 1).toString().padStart(2, "0");
