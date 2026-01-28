@@ -26,43 +26,12 @@ interface MainConfig {
 	uf?: string;
 }
 
-async function fetchAndProcessItem(
+function convertItemDataToOutputItem(
 	contract: Contract,
 	index: number,
-	config: MainConfig,
-	baseUrl: string | undefined,
-	itemRepository: IItensRepository,
-) {
-	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
-
-	const response = await retryRequest<Item>(url);
-
-	const servicoVariacoes = [
-		"SERV",
-		"SRV",
-		"SERVIÇO",
-		"SV",
-		"SERV.",
-		"SERVICO",
-		"SRVC",
-		"SER",
-	];
-	const unidadeMedidaNormalizada = response.data.unidadeMedida
-		?.trim()
-		.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
-		.toUpperCase();
-
-	if (
-		response.data.materialOuServico === "S" ||
-		servicoVariacoes.includes(unidadeMedidaNormalizada)
-	) {
-		logger.warn(
-			`Pulando materialOuServico ${response.data.materialOuServico} | unidadeMedida ${response.data.unidadeMedida} | ${response.data.descricao}`,
-		);
-		return;
-	}
-
-	const item: OutputItens = {
+	itemData: Item,
+): OutputItens {
+	return {
 		orgao: contract.orgaoEntidade.razaoSocial.trim(),
 		unidade:
 			`${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`.trim(),
@@ -75,13 +44,68 @@ async function fetchAndProcessItem(
 		disputa: contract.modoDisputaNome.trim(),
 		registroPreco: contract.srp ? "SIM" : "NÃO",
 		item: index,
-		descricao: response.data.descricao.toLowerCase().trim(),
-		quantidade: response.data.quantidade,
-		unidadeMedida: response.data.unidadeMedida.trim() ?? "",
-		valorUnitarioEstimado: response.data.valorUnitarioEstimado,
-		valorTotal: response.data.valorTotal,
+		descricao: itemData.descricao.toLowerCase().trim(),
+		quantidade: itemData.quantidade,
+		unidadeMedida: itemData.unidadeMedida.trim() ?? "",
+		valorUnitarioEstimado: itemData.valorUnitarioEstimado,
+		valorTotal: itemData.valorTotal,
 		link: `https://pncp.gov.br/app/editais/${contract.orgaoEntidade.cnpj}/${contract.anoCompra}/${contract.sequencialCompra}`,
 	};
+}
+
+async function fetchAndProcessItem(
+	contract: Contract,
+	index: number,
+	config: MainConfig,
+	baseUrl: string | undefined,
+	itemRepository: IItensRepository,
+) {
+	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
+
+	const response = await retryRequest<Item>(url);
+	const ItemData = response.data;
+
+	const servicoVariacoes = [
+		"SERV",
+		"SRV",
+		"SERVIÇO",
+		"SV",
+		"SERV.",
+		"SERVICO",
+		"SRVC",
+		"SER",
+	];
+	const unidadeMedidaNormalizada = ItemData.unidadeMedida
+		?.trim()
+		.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
+		.toUpperCase();
+
+	if (
+		ItemData.materialOuServico === "S" ||
+		servicoVariacoes.includes(unidadeMedidaNormalizada)
+	) {
+		logger.warn(
+			`Pulando materialOuServico ${ItemData.materialOuServico} | unidadeMedida ${ItemData.unidadeMedida} | ${ItemData.descricao}`,
+		);
+		saveItemsToJSON({
+			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
+			itens: [
+				convertItemDataToOutputItem(contract, index, ItemData),
+			],
+			startDateOfProposalReceiptPeriod:
+				config.startDateOfProposalReceiptPeriod,
+			endDateOfProposalReceiptPeriod:
+				config.endDateOfProposalReceiptPeriod,
+			folderToStorage: '_itens_skipped',
+		});
+		return;
+	}
+
+	const item: OutputItens = convertItemDataToOutputItem(
+		contract,
+		index,
+		ItemData,
+	);
 
 	// Armazena imediatamente o item encontrado
 	await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
