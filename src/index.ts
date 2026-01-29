@@ -8,7 +8,10 @@ import {
 	type Contract,
 	ContractingModalityCode,
 	type Item,
+	type MainConfig,
 	type OutputItens,
+	type ProcessingStats,
+	type PromptAnswers,
 } from "@/types";
 import { GetContracts } from "@/use-cases/get-contracts";
 import { saveItemsToDatabase, saveItemsToJSON } from "@/utils/storage-itens";
@@ -17,26 +20,6 @@ import type { IItensRepository } from "@/repositories/ItensRepository";
 
 import { PostgresItensRepository } from "@/repositories/ItensRepository";
 import { delay, formatarData, parseBrDateToISO } from "@/utils";
-
-type MainConfig = {
-	codigoModalidadeContratacao: number;
-	startDateOfProposalReceiptPeriod: string;
-	endDateOfProposalReceiptPeriod: string;
-	folderToStorage: string;
-	timeDelay: number;
-	uf?: string;
-};
-
-type ProcessingStats = {
-	totalRetornados: number;
-	totalPulados: number;
-	totalGravados: number;
-};
-
-type PromptAnswers = Omit<MainConfig, "uf"> & {
-	uf: string;
-	paginaInicial: number;
-};
 
 function convertItemDataToOutputItem(
 	contract: Contract,
@@ -68,7 +51,7 @@ function convertItemDataToOutputItem(
 async function fetchAndProcessItem(
 	contract: Contract,
 	index: number,
-	config: MainConfig,
+	config: Omit<MainConfig, "paginaInicial">,
 	baseUrl: string | undefined,
 	itemRepository: IItensRepository,
 	stats: ProcessingStats,
@@ -138,7 +121,7 @@ async function fetchAndProcessItem(
 
 async function processContract(
 	contract: Contract,
-	config: MainConfig,
+	config: Omit<MainConfig, "paginaInicial">,
 	itemRepository: IItensRepository,
 	stats: ProcessingStats,
 ) {
@@ -195,7 +178,7 @@ async function main({
 	timeDelay,
 	paginaInicial,
 	uf = "SP",
-}: MainConfig & { paginaInicial: number }) {
+}: MainConfig) {
 	await initializeDatabase();
 	logger.info("Banco de dados inicializado.");
 
@@ -220,15 +203,6 @@ async function main({
 
 	const { totalRegistros, totalPaginas } = response;
 	logger.info({ totalRegistros, totalPaginas });
-
-	const config: MainConfig = {
-		codigoModalidadeContratacao,
-		startDateOfProposalReceiptPeriod,
-		endDateOfProposalReceiptPeriod,
-		folderToStorage,
-		timeDelay,
-		uf,
-	};
 
 	for (let i = paginaInicial; i <= totalPaginas; i++) {
 		logger.info(`Processando página ${i} de ${totalPaginas}`);
@@ -263,7 +237,18 @@ async function main({
 
 		for (const contract of contractsData) {
 			try {
-				await processContract(contract, config, itemRepository, stats);
+				await processContract(
+					contract,
+					{
+						codigoModalidadeContratacao,
+						startDateOfProposalReceiptPeriod,
+						endDateOfProposalReceiptPeriod,
+						folderToStorage,
+						timeDelay,
+					},
+					itemRepository,
+					stats,
+				);
 				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 			} catch (error: any) {
 				const apiErrorMsg = error.response?.data?.message || error.message;
