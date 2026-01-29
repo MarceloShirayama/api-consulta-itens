@@ -298,9 +298,9 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 				const [_, day, month, year] = match;
 				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
 				if (
-					date.getUTCFullYear() === Number.parseInt(year) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month) &&
-					date.getUTCDate() === Number.parseInt(day)
+					date.getUTCFullYear() === Number.parseInt(year, 10) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
+					date.getUTCDate() === Number.parseInt(day, 10)
 				) {
 					const today = new Date();
 					today.setUTCHours(0, 0, 0, 0);
@@ -324,6 +324,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 			name: "endDateOfProposalReceiptPeriod",
 			message:
 				"Digite a data de FIM do período de recebimento de propostas (DD-MM-YYYY):",
+			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 			validate: (input: string, answers: any) => {
 				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
 				if (!match) {
@@ -332,9 +333,9 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 				const [_, day, month, year] = match;
 				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
 				if (
-					date.getUTCFullYear() === Number.parseInt(year) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month) &&
-					date.getUTCDate() === Number.parseInt(day)
+					date.getUTCFullYear() === Number.parseInt(year, 10) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
+					date.getUTCDate() === Number.parseInt(day, 10)
 				) {
 					const today = new Date();
 					today.setUTCHours(0, 0, 0, 0);
@@ -353,6 +354,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 				}
 				return "Data inválida.";
 			},
+			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 			default: (answers: any) => {
 				// Converte a data de início (DD-MM-YYYY) para Date
 				const [day, month, year] =
