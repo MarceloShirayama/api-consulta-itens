@@ -158,3 +158,23 @@ export type OutputItens = {
 	numeroNfVenda?: string;
 	statusCompra?: string;
 };
+
+export type MainConfig = {
+	codigoModalidadeContratacao: number;
+	startDateOfProposalReceiptPeriod: string;
+	endDateOfProposalReceiptPeriod: string;
+	folderToStorage: string;
+	timeDelay: number;
+	paginaInicial: number;
+	uf?: string;
+};
+
+export type ProcessingStats = {
+	totalRetornados: number;
+	totalPulados: number;
+	totalGravados: number;
+};
+
+export type PromptAnswers = Omit<MainConfig, "uf"> & {
+	uf: string;
+};

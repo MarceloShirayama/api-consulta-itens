@@ -1,7 +1,6 @@
 import inquirer from "inquirer";
 import { initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
-// import { storageContractsInFile } from "@/utils/storage-contracts";
 import { logger } from "@/shared";
 import {
 	type APIResponse,
