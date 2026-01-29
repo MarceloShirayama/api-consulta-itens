@@ -18,20 +18,25 @@ import type { IItensRepository } from "@/repositories/ItensRepository";
 import { PostgresItensRepository } from "@/repositories/ItensRepository";
 import { delay, formatarData, parseBrDateToISO } from "@/utils";
 
-interface MainConfig {
+type MainConfig = {
 	codigoModalidadeContratacao: number;
 	startDateOfProposalReceiptPeriod: string;
 	endDateOfProposalReceiptPeriod: string;
 	folderToStorage: string;
 	timeDelay: number;
 	uf?: string;
-}
+};
 
-interface ProcessingStats {
+type ProcessingStats = {
 	totalRetornados: number;
 	totalPulados: number;
 	totalGravados: number;
-}
+};
+
+type PromptAnswers = Omit<MainConfig, "uf"> & {
+	uf: string;
+	paginaInicial: number;
+};
 
 function convertItemDataToOutputItem(
 	contract: Contract,
@@ -274,7 +279,7 @@ async function main({
 }
 
 // promptUser function to gather inputs
-async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
+async function promptUser(): Promise<PromptAnswers> {
 	const questions = [
 		{
 			type: "list",
@@ -324,8 +329,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 			name: "endDateOfProposalReceiptPeriod",
 			message:
 				"Digite a data de FIM do período de recebimento de propostas (DD-MM-YYYY):",
-			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-			validate: (input: string, answers: any) => {
+			validate: (input: string, answers: PromptAnswers) => {
 				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
 				if (!match) {
 					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
@@ -354,8 +358,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 				}
 				return "Data inválida.";
 			},
-			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-			default: (answers: any) => {
+			default: (answers: PromptAnswers) => {
 				// Converte a data de início (DD-MM-YYYY) para Date
 				const [day, month, year] =
 					answers.startDateOfProposalReceiptPeriod.split("-");
@@ -397,8 +400,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 		},
 	];
 
-	// biome-ignore lint/suspicious/noExplicitAny: inquirer types issues
-	const answers: any = await inquirer.prompt(questions);
+	const answers: PromptAnswers = await inquirer.prompt(questions);
 
 	const convertToISO = (dateBr: string) => {
 		const [day, month, year] = dateBr.split("-");
@@ -416,7 +418,7 @@ async function promptUser(): Promise<MainConfig & { paginaInicial: number }> {
 		folderToStorage: answers.folderToStorage,
 		timeDelay: answers.timeDelay,
 		paginaInicial: answers.paginaInicial,
-		uf: answers.uf === "" ? undefined : answers.uf,
+		uf: answers.uf,
 	};
 }
 
