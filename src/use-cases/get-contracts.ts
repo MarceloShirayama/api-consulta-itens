@@ -33,8 +33,8 @@ export class GetContracts {
 
 		// logger.warn(url);
 
-		const response = await retryRequest(url);
-		return response.data as APIResponse;
+		const response = await retryRequest<APIResponse>(url);
+		return response.data;
 	}
 
 	#formatDate(OriginalDate: string): string {
