@@ -1,3 +1,6 @@
+import { exec } from "node:child_process";
+import path from "node:path";
+import { promisify } from "node:util";
 import inquirer from "inquirer";
 import { closeDatabase, initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
@@ -424,6 +427,8 @@ async function promptUser(): Promise<PromptAnswers> {
 	};
 }
 
+const execAsync = promisify(exec);
+
 (async () => {
 	const gracefulShutdown = async (signal: string) => {
 		logger.notice(`Recebido sinal ${signal}. Encerrando graciosamente...`);
@@ -453,6 +458,18 @@ async function promptUser(): Promise<PromptAnswers> {
 		const duracao = fim - inicio;
 		const duracaoEmMinutos = (duracao / 1000 / 60).toFixed(2);
 		logger.warn(`Duração do processo: ${duracaoEmMinutos} minutos`);
+
+		try {
+			const absolutePath = path.resolve(config.folderToStorage);
+			logger.notice(
+				`Abrindo a pasta ${config.folderToStorage} no Windows Explorer...`,
+			);
+			// explorer.exe as vezes retorna código 1 mesmo funcionando,
+			// usando cwd o explorer abre na pasta correta no WSL
+			await execAsync("explorer.exe .", { cwd: absolutePath }).catch(() => {});
+		} catch (error) {
+			logger.error("Falha ao abrir a pasta no Windows Explorer:", error);
+		}
 		// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 	} catch (error: any) {
 		logger.error("Ocorreu um erro ao executar o processo", {
