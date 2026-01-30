@@ -1,5 +1,5 @@
 import inquirer from "inquirer";
-import { initializeDatabase } from "@/lib/database";
+import { closeDatabase, initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 import { logger } from "@/shared";
 import {
@@ -425,6 +425,16 @@ async function promptUser(): Promise<PromptAnswers> {
 }
 
 (async () => {
+	const gracefulShutdown = async (signal: string) => {
+		logger.notice(`Recebido sinal ${signal}. Encerrando graciosamente...`);
+		await closeDatabase();
+		logger.info("Conexão com o banco de dados encerrada.");
+		process.exit(0);
+	};
+
+	process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+	process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
 	try {
 		const config = await promptUser();
 
@@ -451,5 +461,8 @@ async function promptUser(): Promise<PromptAnswers> {
 			status: error.status,
 			stack: error.stack,
 		});
+	} finally {
+		await closeDatabase();
+		logger.info("Conexão com o banco de dados liberada.");
 	}
 })();

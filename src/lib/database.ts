@@ -1,6 +1,6 @@
 import pgPromise from "pg-promise";
 
-const pgp = pgPromise();
+export const pgp = pgPromise();
 
 // Substitua pela sua string de conexão PostgreSQL
 const connectionString =
@@ -8,6 +8,10 @@ const connectionString =
 	"postgres://username:password@localhost:5432/meu_banco_de_dados";
 
 export const db = pgp(connectionString);
+
+export async function closeDatabase() {
+	await pgp.end();
+}
 
 export async function initializeDatabase() {
 	// Cria schema se não existir
