@@ -57,7 +57,10 @@ async function fetchAndProcessItem(
 ) {
 	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
 
-	const response = await retryRequest<Item>(url);
+	const response = await retryRequest<Item>(url, {
+		timeout: 30000,
+		timeoutErrorMessage: `Tempo de requisição excedido ao buscar item ${index} do contrato ${contract.numeroCompra}/${contract.anoCompra}`,
+	});
 	const ItemData = response.data;
 
 	// Incrementa o total de itens retornados
@@ -114,8 +117,6 @@ async function fetchAndProcessItem(
 		endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
 		folderToStorage: config.folderToStorage,
 	});
-
-	await delay(config.timeDelay);
 }
 
 async function processContract(
@@ -155,6 +156,8 @@ async function processContract(
 				itemRepository,
 				stats,
 			);
+			// Apply delay between requests to avoid API rate limiting
+			await delay(config.timeDelay);
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
 			if (error.response && error.response.status === 404) {
@@ -216,6 +219,8 @@ async function main({
 				endDateOfProposalReceiptPeriod,
 				uf,
 			});
+			// Apply delay between page requests to avoid API rate limiting
+			await delay(timeDelay);
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
 			const apiErrorMsg = error.response?.data?.message || error.message;
@@ -368,7 +373,7 @@ async function promptUser(): Promise<PromptAnswers> {
 			type: "number",
 			name: "timeDelay",
 			message: "Delay entre requisições (ms):",
-			default: 250,
+			default: 200,
 		},
 		{
 			type: "number",

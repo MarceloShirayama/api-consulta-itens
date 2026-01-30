@@ -1,10 +1,11 @@
-import axios, { type AxiosResponse } from "axios";
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { logger } from "@/shared";
 
 // Função que recebe apenas a URL
 // biome-ignore lint/suspicious/noExplicitAny: <eu quero any mesmo>
 export async function retryRequest<T = any>(
 	url: string,
+	config?: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
 	let attempt = 0;
 	const maxRetries = 5;
@@ -13,7 +14,7 @@ export async function retryRequest<T = any>(
 	while (attempt < maxRetries) {
 		try {
 			logger.notice(`Iniciando requisição: ${url}`);
-			const result = await axios.get<T>(url, { timeout: 30000 });
+			const result = await axios.get<T>(url, { ...config });
 			if (attempt > 0) {
 				logger.warn(
 					`Requisição bem sucedida na tentativa ${attempt + 1} (url: ${url})`,
