@@ -13,7 +13,11 @@ import {
 	type PromptAnswers,
 } from "@/types";
 import { GetContracts } from "@/use-cases/get-contracts";
-import { saveItemsToDatabase, saveItemsToJSON } from "@/utils/storage-itens";
+import {
+	saveItemsToDatabase,
+	saveItemsToJSON,
+	saveToXLXS,
+} from "@/utils/storage-itens";
 import "./_config/module-alias";
 import type { IItensRepository } from "@/repositories/ItensRepository";
 
@@ -97,6 +101,13 @@ async function fetchAndProcessItem(
 			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
 			folderToStorage: "_itens_skipped",
 		});
+		saveToXLXS({
+			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
+			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
+			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
+			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
+			folderToStorage: "_itens_skipped",
+		});
 		return;
 	}
 
@@ -110,13 +121,15 @@ async function fetchAndProcessItem(
 	await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
 	// Incrementa o total de itens gravados
 	stats.totalGravados++;
-	await saveItemsToJSON({
+	const dataParamsToSaveInFile = {
 		codigoModalidadeContratacao: config.codigoModalidadeContratacao,
 		itens: [item],
 		startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
 		endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
 		folderToStorage: config.folderToStorage,
-	});
+	};
+	await saveItemsToJSON(dataParamsToSaveInFile);
+	await saveToXLXS(dataParamsToSaveInFile);
 }
 
 async function processContract(
@@ -373,7 +386,7 @@ async function promptUser(): Promise<PromptAnswers> {
 			type: "number",
 			name: "timeDelay",
 			message: "Delay entre requisições (ms):",
-			default: 200,
+			default: 150,
 		},
 		{
 			type: "number",

@@ -17,6 +17,7 @@
 		"@types/inquirer": "8.2.12",
 		"axios": "^1.13.2",
 		"axios-retry": "^4.5.0",
+		"exceljs": "^4.4.0",
 		"inquirer": "8.2.7",
 		"module-alias": "^2.2.3",
 		"pg-promise": "^12.3.0"
