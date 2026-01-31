@@ -161,22 +161,24 @@ async function processContract(
 		logger.warn("Contrato é de registro de preço, pulando armazenamento.");
 		return;
 	}
-	if (contract.situacaoCompraId === 2) {
-		logger.warn("Contrato Homologado, pulando armazenamento.");
-		return;
-	}
-	if (contract.situacaoCompraId === 3) {
-		logger.warn("Contrato Anulado/Revogado/Cancelado, pulando armazenamento.");
-		return;
-	}
-	if (contract.situacaoCompraId === 4) {
-		logger.warn("Contrato Deserto, pulando armazenamento.");
-		return;
-	}
-	if (contract.situacaoCompraId === 5) {
-		logger.warn("Contrato Fracassado, pulando armazenamento.");
-		return;
-	}
+	// nào vou pular essess contratos ainda porque pode ser que eu já puchei e eles mudaram de status e, portanto, não vai atualizar
+	// deveria vericar os contratos que não estão mais aptos a paticipação e alterar o status onde está persistindo.
+	// if (contract.situacaoCompraId === 2) {
+	// 	logger.warn("Contrato Homologado, pulando armazenamento.");
+	// 	return;
+	// }
+	// if (contract.situacaoCompraId === 3) {
+	// 	logger.warn("Contrato Anulado/Revogado/Cancelado, pulando armazenamento.");
+	// 	return;
+	// }
+	// if (contract.situacaoCompraId === 4) {
+	// 	logger.warn("Contrato Deserto, pulando armazenamento.");
+	// 	return;
+	// }
+	// if (contract.situacaoCompraId === 5) {
+	// 	logger.warn("Contrato Fracassado, pulando armazenamento.");
+	// 	return;
+	// }
 
 	for (let index = 1; index < 1000; index++) {
 		try {
