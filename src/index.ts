@@ -407,7 +407,7 @@ async function promptUser(): Promise<PromptAnswers> {
 			type: "number",
 			name: "timeDelay",
 			message: "Delay entre requisições (ms):",
-			default: 150,
+			default: 100,
 		},
 		{
 			type: "number",
