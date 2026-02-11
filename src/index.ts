@@ -38,6 +38,7 @@ function convertItemDataToOutputItem(
 			`${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`.trim(),
 		municipio: contract.unidadeOrgao.municipioNome.trim(),
 		compra: `${contract.numeroCompra}/${contract.anoCompra}`,
+		dataPublicacaoPncp: formatarData(contract.dataPublicacaoPncp).trim(),
 		dataEncerramentoProposta: formatarData(
 			contract.dataEncerramentoProposta,
 		).trim(),
@@ -97,14 +98,14 @@ async function fetchAndProcessItem(
 		);
 		// Incrementa o total de itens pulados
 		stats.totalPulados++;
-		saveItemsToJSON({
+		await saveItemsToJSON({
 			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
 			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
 			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
 			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
 			folderToStorage: "_itens_skipped",
 		});
-		saveToXLXS({
+		await saveToXLXS({
 			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
 			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
 			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,

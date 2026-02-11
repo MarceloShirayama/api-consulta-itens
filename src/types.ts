@@ -137,6 +137,7 @@ export type OutputItens = {
 	unidade: string;
 	municipio: string;
 	compra: string;
+	dataPublicacaoPncp: string;
 	dataEncerramentoProposta: string;
 	modalidade: string;
 	disputa: string;
