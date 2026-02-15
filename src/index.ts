@@ -168,7 +168,7 @@ async function processContract(
 
 		if (dataPublicacaoPncpContrato < dataPublicacaoPncpConfig) {
 			logger.warn(
-				`Contrato com data de publicação ${contract.dataPublicacaoPncp} menor que a data de publicação mínima ${config.dataPublicacaoPncp}, pulando para o próximo contrato.`,
+				`Contrato com data de publicação ${contract.dataPublicacaoPncp} menor que a data de corte ${config.dataPublicacaoPncp}, pulando.`,
 			);
 			return;
 		}
@@ -423,20 +423,22 @@ async function promptUser(): Promise<PromptAnswers> {
 				}
 				return "Data inválida.";
 			},
-			default: (answers: PromptAnswers) => {
-				// Converte a data de início (DD-MM-YYYY) para Date
-				const [day, month, year] =
-					answers.startDateOfProposalReceiptPeriod.split("-");
-				const startDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				// Adiciona 10 dias
-				const endDate = new Date(
-					startDate.getTime() + 10 * 24 * 60 * 60 * 1000,
-				);
-				// Formata a data para DD-MM-YYYY
-				const dia = endDate.getUTCDate().toString().padStart(2, "0");
-				const mes = (endDate.getUTCMonth() + 1).toString().padStart(2, "0");
-				const ano = endDate.getUTCFullYear();
-				return `${dia}-${mes}-${ano}`;
+			// default: (answers: PromptAnswers) => {
+			default: () => {
+				return "31-12-2050";
+				// // Converte a data de início (DD-MM-YYYY) para Date
+				// const [day, month, year] =
+				// 	answers.startDateOfProposalReceiptPeriod.split("-");
+				// const startDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				// // Adiciona 10 dias
+				// const endDate = new Date(
+				// 	startDate.getTime() + 10 * 24 * 60 * 60 * 1000,
+				// );
+				// // Formata a data para DD-MM-YYYY
+				// const dia = endDate.getUTCDate().toString().padStart(2, "0");
+				// const mes = (endDate.getUTCMonth() + 1).toString().padStart(2, "0");
+				// const ano = endDate.getUTCFullYear();
+				// return `${dia}-${mes}-${ano}`;
 			},
 		},
 		{
