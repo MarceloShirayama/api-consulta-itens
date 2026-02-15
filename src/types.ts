@@ -168,6 +168,7 @@ export type MainConfig = {
 	timeDelay: number;
 	paginaInicial: number;
 	uf?: string;
+	dataPublicacaoPncp?: string;
 };
 
 export type ProcessingStats = {

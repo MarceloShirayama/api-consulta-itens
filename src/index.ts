@@ -158,6 +158,22 @@ async function processContract(
 		return;
 	}
 
+	if (config.dataPublicacaoPncp) {
+		const dataPublicacaoPncpContrato = new Date(
+			parseBrDateToISO(formatarData(contract.dataPublicacaoPncp)),
+		);
+		const dataPublicacaoPncpConfig = new Date(
+			parseBrDateToISO(config.dataPublicacaoPncp),
+		);
+
+		if (dataPublicacaoPncpContrato < dataPublicacaoPncpConfig) {
+			logger.warn(
+				`Contrato com data de publicação ${contract.dataPublicacaoPncp} menor que a data de publicação mínima ${config.dataPublicacaoPncp}, pulando para o próximo contrato.`,
+			);
+			return;
+		}
+	}
+
 	if (contract.srp === true) {
 		logger.warn("Contrato é de registro de preço, pulando armazenamento.");
 		return;
@@ -215,6 +231,7 @@ async function main({
 	timeDelay,
 	paginaInicial,
 	uf = "SP",
+	dataPublicacaoPncp,
 }: MainConfig) {
 	await initializeDatabase();
 	logger.info("Banco de dados inicializado.");
@@ -284,6 +301,7 @@ async function main({
 						endDateOfProposalReceiptPeriod,
 						folderToStorage,
 						timeDelay,
+						dataPublicacaoPncp,
 					},
 					itemRepository,
 					stats,
@@ -422,6 +440,29 @@ async function promptUser(): Promise<PromptAnswers> {
 			message: "UF (Opcional, deixe em branco para todas):",
 			default: "SP",
 		},
+		{
+			type: "input",
+			name: "dataPublicacaoPncp",
+			message:
+				"Digite a data de publicação no PNCP (DD-MM-YYYY) para filtrar (Opcional, deixe em branco para não filtrar):",
+			validate: (input: string) => {
+				if (!input) return true;
+				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+				if (!match) {
+					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
+				}
+				const [_, day, month, year] = match;
+				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				if (
+					date.getUTCFullYear() === Number.parseInt(year, 10) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
+					date.getUTCDate() === Number.parseInt(day, 10)
+				) {
+					return true;
+				}
+				return "Data inválida (ex: 29/02 em ano não bissexto).";
+			},
+		},
 	];
 
 	const answers: PromptAnswers = await inquirer.prompt(questions);
@@ -443,6 +484,9 @@ async function promptUser(): Promise<PromptAnswers> {
 		timeDelay: answers.timeDelay,
 		paginaInicial: answers.paginaInicial,
 		uf: answers.uf,
+		dataPublicacaoPncp: answers.dataPublicacaoPncp
+			? convertToISO(answers.dataPublicacaoPncp)
+			: undefined,
 	};
 }
 
