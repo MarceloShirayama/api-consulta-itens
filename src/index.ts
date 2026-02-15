@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import inquirer from "inquirer";
-import { closeDatabase, initializeDatabase } from "@/lib/database";
+// import { closeDatabase, initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 import { logger } from "@/shared";
 import {
@@ -17,14 +17,14 @@ import {
 } from "@/types";
 import { GetContracts } from "@/use-cases/get-contracts";
 import {
-	saveItemsToDatabase,
+	/*saveItemsToDatabase,*/
 	saveItemsToJSON,
 	saveToXLXS,
 } from "@/utils/storage-itens";
 import "./_config/module-alias";
-import type { IItensRepository } from "@/repositories/ItensRepository";
+// import type { IItensRepository } from "@/repositories/ItensRepository";
 
-import { PostgresItensRepository } from "@/repositories/ItensRepository";
+// import { PostgresItensRepository } from "@/repositories/ItensRepository";
 import { delay, formatarData, parseBrDateToISO } from "@/utils";
 
 function convertItemDataToOutputItem(
@@ -60,7 +60,7 @@ async function fetchAndProcessItem(
 	index: number,
 	config: Omit<MainConfig, "paginaInicial">,
 	baseUrl: string | undefined,
-	itemRepository: IItensRepository,
+	// itemRepository: IItensRepository,
 	stats: ProcessingStats,
 ) {
 	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
@@ -122,7 +122,7 @@ async function fetchAndProcessItem(
 	);
 
 	// Armazena imediatamente o item encontrado
-	await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
+	// await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
 	// Incrementa o total de itens gravados
 	stats.totalGravados++;
 	const dataParamsToSaveInFile = {
@@ -139,7 +139,7 @@ async function fetchAndProcessItem(
 async function processContract(
 	contract: Contract,
 	config: Omit<MainConfig, "paginaInicial">,
-	itemRepository: IItensRepository,
+	// itemRepository: IItensRepository,
 	stats: ProcessingStats,
 ) {
 	const baseUrl = process.env.PNCP_INTEGRATION_URL;
@@ -204,7 +204,7 @@ async function processContract(
 				index,
 				config,
 				baseUrl,
-				itemRepository,
+				// itemRepository,
 				stats,
 			);
 			// Apply delay between requests to avoid API rate limiting
@@ -233,10 +233,10 @@ async function main({
 	uf = "SP",
 	dataPublicacaoPncp,
 }: MainConfig) {
-	await initializeDatabase();
-	logger.info("Banco de dados inicializado.");
+	// await initializeDatabase();
+	// logger.info("Banco de dados inicializado.");
 
-	const itemRepository = new PostgresItensRepository();
+	// const itemRepository = new PostgresItensRepository();
 
 	// Inicializa o objeto de estatísticas
 	const stats: ProcessingStats = {
@@ -303,7 +303,7 @@ async function main({
 						timeDelay,
 						dataPublicacaoPncp,
 					},
-					itemRepository,
+					// itemRepository,
 					stats,
 				);
 				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
@@ -497,8 +497,8 @@ const execAsync = promisify(exec);
 (async () => {
 	const gracefulShutdown = async (signal: string) => {
 		logger.notice(`Recebido sinal ${signal}. Encerrando graciosamente...`);
-		await closeDatabase();
-		logger.info("Conexão com o banco de dados encerrada.");
+		// await closeDatabase();
+		// logger.info("Conexão com o banco de dados encerrada.");
 		process.exit(0);
 	};
 
@@ -544,7 +544,7 @@ const execAsync = promisify(exec);
 			stack: error.stack,
 		});
 	} finally {
-		await closeDatabase();
-		logger.info("Conexão com o banco de dados liberada.");
+		// await closeDatabase();
+		// logger.info("Conexão com o banco de dados liberada.");
 	}
 })();
