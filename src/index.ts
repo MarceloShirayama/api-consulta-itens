@@ -334,6 +334,29 @@ async function promptUser(): Promise<PromptAnswers> {
 		},
 		{
 			type: "input",
+			name: "dataPublicacaoPncp",
+			message:
+				"Digite a data de publicação no PNCP (DD-MM-YYYY) para filtrar (Opcional, deixe em branco para não filtrar):",
+			validate: (input: string) => {
+				if (!input) return true;
+				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+				if (!match) {
+					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
+				}
+				const [_, day, month, year] = match;
+				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+				if (
+					date.getUTCFullYear() === Number.parseInt(year, 10) &&
+					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
+					date.getUTCDate() === Number.parseInt(day, 10)
+				) {
+					return true;
+				}
+				return "Data inválida (ex: 29/02 em ano não bissexto).";
+			},
+		},
+		{
+			type: "input",
 			name: "startDateOfProposalReceiptPeriod",
 			message:
 				"Digite a data de INÍCIO do período de recebimento de propostas (DD-MM-YYYY):",
@@ -439,29 +462,6 @@ async function promptUser(): Promise<PromptAnswers> {
 			name: "uf",
 			message: "UF (Opcional, deixe em branco para todas):",
 			default: "SP",
-		},
-		{
-			type: "input",
-			name: "dataPublicacaoPncp",
-			message:
-				"Digite a data de publicação no PNCP (DD-MM-YYYY) para filtrar (Opcional, deixe em branco para não filtrar):",
-			validate: (input: string) => {
-				if (!input) return true;
-				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-				if (!match) {
-					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
-				}
-				const [_, day, month, year] = match;
-				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				if (
-					date.getUTCFullYear() === Number.parseInt(year, 10) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
-					date.getUTCDate() === Number.parseInt(day, 10)
-				) {
-					return true;
-				}
-				return "Data inválida (ex: 29/02 em ano não bissexto).";
-			},
 		},
 	];
 
