@@ -168,7 +168,7 @@ async function processContract(
 
 		if (dataPublicacaoPncpContrato < dataPublicacaoPncpConfig) {
 			logger.warn(
-				`Contrato com data de publicação ${contract.dataPublicacaoPncp} menor que a data de corte ${config.dataPublicacaoPncp}, pulando.`,
+				`Contrato com data de publicação ${formatarData(contract.dataPublicacaoPncp)} menor que a data de corte ${config.dataPublicacaoPncp}, pulando.`,
 			);
 			return;
 		}
