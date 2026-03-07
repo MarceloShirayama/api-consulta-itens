@@ -34,7 +34,6 @@ export class GetContracts {
 		// logger.warn(url);
 
 		const response = await retryRequest<APIResponse>(url, {
-			timeout: 30000,
 			timeoutErrorMessage: "Tempo de requisição excedido em get-contracts",
 		});
 		return response.data;

@@ -66,7 +66,6 @@ async function fetchAndProcessItem(
 	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
 
 	const response = await retryRequest<Item>(url, {
-		timeout: 30000,
 		timeoutErrorMessage: `Tempo de requisição excedido ao buscar item ${index} do contrato ${contract.numeroCompra}/${contract.anoCompra}`,
 	});
 	const ItemData = response.data;
@@ -462,7 +461,7 @@ async function promptUser(): Promise<PromptAnswers> {
 		{
 			type: "input",
 			name: "uf",
-			message: "UF (Opcional, deixe em branco para todas):",
+			message: "UF (Opcional, padrão SP):",
 			default: "SP",
 		},
 	];

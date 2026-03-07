@@ -97,6 +97,7 @@ export async function saveItemsToJSON({
 		);
 
 		fs.writeFileSync(filePath, JSON.stringify(uniqueItens, null, 2));
+		// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 	} catch (error: any) {
 		logger.error(
 			`Unidade ${itens[0].unidade} - Compra ${itens[0].compra} - dataEncerramentoProposta ${itens[0].dataEncerramentoProposta} - Item ${itens[0].item} - Erro ao armazenar itens no arquivo JSON:`,
@@ -241,6 +242,7 @@ export async function saveToXLXS({
 		}
 
 		await workbook.xlsx.writeFile(filePath);
+		// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 	} catch (error: any) {
 		logger.error(
 			`Unidade ${itens[0].unidade} - Compra ${itens[0].compra} - dataEncerramentoProposta ${itens[0].dataEncerramentoProposta} - Item ${itens[0].item} - Erro ao armazenar itens no arquivo Excel:`,
