@@ -1,19 +1,16 @@
 import { exec } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import inquirer from "inquirer";
 // import { closeDatabase, initializeDatabase } from "@/lib/database";
 import { retryRequest } from "@/lib/retryRequest";
 import { logger } from "@/shared";
-import {
-	type APIResponse,
-	type Contract,
-	ContractingModalityCode,
-	type Item,
-	type MainConfig,
-	type OutputItens,
-	type ProcessingStats,
-	type PromptAnswers,
+import type {
+	APIResponse,
+	Contract,
+	Item,
+	MainConfig,
+	OutputItens,
+	ProcessingStats,
 } from "@/types";
 import { GetContracts } from "@/use-cases/get-contracts";
 import {
@@ -22,8 +19,10 @@ import {
 	saveToXLXS,
 } from "@/utils/storage";
 import "./_config/module-alias";
+
 // import type { IItensRepository } from "@/repositories/ItensRepository";
 
+import { promptUser } from "@/cli/prompt";
 // import { PostgresItensRepository } from "@/repositories/ItensRepository";
 import { delay, formatarData, parseBrDateToISO } from "@/utils";
 
@@ -317,178 +316,6 @@ async function main({
 	}
 
 	return stats;
-}
-
-// promptUser function to gather inputs
-async function promptUser(): Promise<PromptAnswers> {
-	const questions = [
-		{
-			type: "list",
-			name: "codigoModalidadeContratacao",
-			message: "Escolha a modalidade de contratação:",
-			choices: Object.entries(ContractingModalityCode)
-				.filter(([key]) => Number.isNaN(Number(key))) // Filter out numeric keys from enum
-				.map(([key, value]) => ({ name: key, value: value })),
-			default: ContractingModalityCode["Dispensa de Licitação"],
-		},
-		{
-			type: "input",
-			name: "dataPublicacaoPncp",
-			message:
-				"Digite a data de publicação no PNCP (DD-MM-YYYY) para filtrar (Opcional, deixe em branco para não filtrar):",
-			validate: (input: string) => {
-				if (!input) return true;
-				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-				if (!match) {
-					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
-				}
-				const [_, day, month, year] = match;
-				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				if (
-					date.getUTCFullYear() === Number.parseInt(year, 10) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
-					date.getUTCDate() === Number.parseInt(day, 10)
-				) {
-					return true;
-				}
-				return "Data inválida (ex: 29/02 em ano não bissexto).";
-			},
-		},
-		{
-			type: "input",
-			name: "startDateOfProposalReceiptPeriod",
-			message:
-				"Digite a data de INÍCIO do período de recebimento de propostas (DD-MM-YYYY):",
-			validate: (input: string) => {
-				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-				if (!match) {
-					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
-				}
-				const [_, day, month, year] = match;
-				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				if (
-					date.getUTCFullYear() === Number.parseInt(year, 10) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
-					date.getUTCDate() === Number.parseInt(day, 10)
-				) {
-					const today = new Date();
-					today.setUTCHours(0, 0, 0, 0);
-					if (date < today) {
-						return "A data inicial não pode ser menor que a data atual.";
-					}
-					return true;
-				}
-				return "Data inválida (ex: 29/02 em ano não bissexto).";
-			},
-			default: (() => {
-				const now = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
-				const dia = now.getDate().toString().padStart(2, "0");
-				const mes = (now.getMonth() + 1).toString().padStart(2, "0");
-				const ano = now.getFullYear();
-				return `${dia}-${mes}-${ano}`;
-			})(),
-		},
-		{
-			type: "input",
-			name: "endDateOfProposalReceiptPeriod",
-			message:
-				"Digite a data de FIM do período de recebimento de propostas (DD-MM-YYYY):",
-			validate: (input: string, answers: PromptAnswers) => {
-				const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-				if (!match) {
-					return "Por favor, digite uma data válida no formato DD-MM-YYYY.";
-				}
-				const [_, day, month, year] = match;
-				const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				if (
-					date.getUTCFullYear() === Number.parseInt(year, 10) &&
-					date.getUTCMonth() + 1 === Number.parseInt(month, 10) &&
-					date.getUTCDate() === Number.parseInt(day, 10)
-				) {
-					const today = new Date();
-					today.setUTCHours(0, 0, 0, 0);
-					if (date < today) {
-						return "A data final não pode ser menor que a data atual.";
-					}
-					const [startDay, startMonth, startYear] =
-						answers.startDateOfProposalReceiptPeriod.split("-");
-					const startDate = new Date(
-						`${startYear}-${startMonth}-${startDay}T12:00:00Z`,
-					);
-					if (date < startDate) {
-						return "A data final não pode ser menor que a data inicial.";
-					}
-					return true;
-				}
-				return "Data inválida.";
-			},
-			// default: (answers: PromptAnswers) => {
-			default: () => {
-				return "31-12-2050";
-				// // Converte a data de início (DD-MM-YYYY) para Date
-				// const [day, month, year] =
-				// 	answers.startDateOfProposalReceiptPeriod.split("-");
-				// const startDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
-				// // Adiciona 10 dias
-				// const endDate = new Date(
-				// 	startDate.getTime() + 10 * 24 * 60 * 60 * 1000,
-				// );
-				// // Formata a data para DD-MM-YYYY
-				// const dia = endDate.getUTCDate().toString().padStart(2, "0");
-				// const mes = (endDate.getUTCMonth() + 1).toString().padStart(2, "0");
-				// const ano = endDate.getUTCFullYear();
-				// return `${dia}-${mes}-${ano}`;
-			},
-		},
-		{
-			type: "input",
-			name: "folderToStorage",
-			message: "Pasta para armazenamento dos itens:",
-			default: "_itens",
-		},
-		{
-			type: "number",
-			name: "timeDelay",
-			message: "Delay entre requisições (ms):",
-			default: 100,
-		},
-		{
-			type: "number",
-			name: "paginaInicial",
-			message: "Página inicial:",
-			default: 1,
-		},
-		{
-			type: "input",
-			name: "uf",
-			message: "UF (Opcional, padrão SP):",
-			default: "SP",
-		},
-	];
-
-	const answers: PromptAnswers = await inquirer.prompt(questions);
-
-	const convertToISO = (dateBr: string) => {
-		const [day, month, year] = dateBr.split("-");
-		return `${year}-${month}-${day}`;
-	};
-
-	return {
-		codigoModalidadeContratacao: answers.codigoModalidadeContratacao,
-		startDateOfProposalReceiptPeriod: convertToISO(
-			answers.startDateOfProposalReceiptPeriod,
-		),
-		endDateOfProposalReceiptPeriod: convertToISO(
-			answers.endDateOfProposalReceiptPeriod,
-		),
-		folderToStorage: answers.folderToStorage,
-		timeDelay: answers.timeDelay,
-		paginaInicial: answers.paginaInicial,
-		uf: answers.uf,
-		dataPublicacaoPncp: answers.dataPublicacaoPncp
-			? convertToISO(answers.dataPublicacaoPncp)
-			: undefined,
-	};
 }
 
 const execAsync = promisify(exec);
