@@ -20,7 +20,7 @@ import {
 	/*saveItemsToDatabase,*/
 	saveItemsToJSON,
 	saveToXLXS,
-} from "@/utils/storage-itens";
+} from "@/utils/storage";
 import "./_config/module-alias";
 // import type { IItensRepository } from "@/repositories/ItensRepository";
 
