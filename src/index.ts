@@ -1,213 +1,20 @@
 import { exec } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-// import { closeDatabase, initializeDatabase } from "@/lib/database";
-import { retryRequest } from "@/lib/retryRequest";
+import { isAxiosError } from "axios";
 import { logger } from "@/shared";
-import type {
-	APIResponse,
-	Contract,
-	Item,
-	MainConfig,
-	OutputItens,
-	ProcessingStats,
-} from "@/types";
-import { GetContracts } from "@/use-cases/get-contracts";
-import {
-	/*saveItemsToDatabase,*/
-	saveItemsToJSON,
-	saveToXLXS,
-} from "@/utils/storage";
+import type { MainConfig, ProcessingStats } from "@/types";
+import { GetContracts, ProcessContract } from "@/use-cases";
+import { delay } from "@/utils";
 import "./_config/module-alias";
-
-// import type { IItensRepository } from "@/repositories/ItensRepository";
-
 import { promptUser } from "@/cli/prompt";
-// import { PostgresItensRepository } from "@/repositories/ItensRepository";
-import { delay, formatarData, parseBrDateToISO } from "@/utils";
 
-function convertItemDataToOutputItem(
-	contract: Contract,
-	index: number,
-	itemData: Item,
-): OutputItens {
-	return {
-		orgao: contract.orgaoEntidade.razaoSocial.trim(),
-		unidade:
-			`${contract.unidadeOrgao.codigoUnidade} - ${contract.unidadeOrgao.nomeUnidade}`.trim(),
-		municipio: contract.unidadeOrgao.municipioNome.trim(),
-		compra: `${contract.numeroCompra}/${contract.anoCompra}`,
-		dataPublicacaoPncp: formatarData(contract.dataPublicacaoPncp).trim(),
-		dataEncerramentoProposta: formatarData(
-			contract.dataEncerramentoProposta,
-		).trim(),
-		modalidade: contract.modalidadeNome.trim(),
-		disputa: contract.modoDisputaNome.trim(),
-		registroPreco: contract.srp ? "SIM" : "NÃO",
-		item: index,
-		descricao: itemData.descricao.toLowerCase().trim(),
-		quantidade: itemData.quantidade,
-		unidadeMedida: itemData.unidadeMedida.trim() ?? "",
-		valorUnitarioEstimado: itemData.valorUnitarioEstimado,
-		valorTotal: itemData.valorTotal,
-		link: `https://pncp.gov.br/app/editais/${contract.orgaoEntidade.cnpj}/${contract.anoCompra}/${contract.sequencialCompra}`,
-	};
-}
+const execAsync = promisify(exec);
 
-async function fetchAndProcessItem(
-	contract: Contract,
-	index: number,
-	config: Omit<MainConfig, "paginaInicial">,
-	baseUrl: string | undefined,
-	// itemRepository: IItensRepository,
-	stats: ProcessingStats,
-) {
-	const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
-
-	const response = await retryRequest<Item>(url, {
-		timeoutErrorMessage: `Tempo de requisição excedido ao buscar item ${index} do contrato ${contract.numeroCompra}/${contract.anoCompra}`,
-	});
-	const ItemData = response.data;
-
-	// Incrementa o total de itens retornados
-	stats.totalRetornados++;
-
-	const servicoVariacoes = [
-		"SERV",
-		"SRV",
-		"SERVIÇO",
-		"SV",
-		"SERV.",
-		"SERVICO",
-		"SRVC",
-		"SER",
-	];
-	const unidadeMedidaNormalizada = ItemData.unidadeMedida
-		?.trim()
-		.replace(/[\n\r\t\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, "")
-		.toUpperCase();
-
-	if (
-		ItemData.materialOuServico === "S" ||
-		servicoVariacoes.includes(unidadeMedidaNormalizada)
-	) {
-		logger.warn(
-			`Pulando materialOuServico ${ItemData.materialOuServico} | unidadeMedida ${ItemData.unidadeMedida} | ${ItemData.descricao}`,
-		);
-		// Incrementa o total de itens pulados
-		stats.totalPulados++;
-		await saveItemsToJSON({
-			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
-			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
-			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
-			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
-			folderToStorage: "_itens_skipped",
-		});
-		await saveToXLXS({
-			codigoModalidadeContratacao: config.codigoModalidadeContratacao,
-			itens: [convertItemDataToOutputItem(contract, index, ItemData)],
-			startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
-			endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
-			folderToStorage: "_itens_skipped",
-		});
-		return;
-	}
-
-	const item: OutputItens = convertItemDataToOutputItem(
-		contract,
-		index,
-		ItemData,
-	);
-
-	// Armazena imediatamente o item encontrado
-	// await saveItemsToDatabase({ itens: itemRepository })({ itens: [item] });
-	// Incrementa o total de itens gravados
-	stats.totalGravados++;
-	const dataParamsToSaveInFile = {
-		codigoModalidadeContratacao: config.codigoModalidadeContratacao,
-		itens: [item],
-		startDateOfProposalReceiptPeriod: config.startDateOfProposalReceiptPeriod,
-		endDateOfProposalReceiptPeriod: config.endDateOfProposalReceiptPeriod,
-		folderToStorage: config.folderToStorage,
-	};
-	await saveItemsToJSON(dataParamsToSaveInFile);
-	await saveToXLXS(dataParamsToSaveInFile);
-}
-
-async function processContract(
-	contract: Contract,
-	config: Omit<MainConfig, "paginaInicial">,
-	// itemRepository: IItensRepository,
-	stats: ProcessingStats,
-) {
-	const baseUrl = process.env.PNCP_INTEGRATION_URL;
-	logger.notice(
-		`Processando contrato ${contract.unidadeOrgao.nomeUnidade} - ${contract.numeroCompra}/${contract.anoCompra}`,
-	);
-
-	const dataEncerramentoMenorQueDataInicio =
-		new Date(contract.dataEncerramentoProposta) <
-		new Date(parseBrDateToISO(config.startDateOfProposalReceiptPeriod));
-
-	if (dataEncerramentoMenorQueDataInicio) {
-		logger.warn(
-			`Contrato com data de encerramento ${contract.dataEncerramentoProposta} menor que a data de início ${config.startDateOfProposalReceiptPeriod}, pulando para o próximo contrato.`,
-		);
-		return;
-	}
-
-	if (config.dataPublicacaoPncp) {
-		const dataPublicacaoPncpContrato = new Date(
-			parseBrDateToISO(formatarData(contract.dataPublicacaoPncp)),
-		);
-		const dataPublicacaoPncpConfig = new Date(
-			parseBrDateToISO(config.dataPublicacaoPncp),
-		);
-
-		if (dataPublicacaoPncpContrato < dataPublicacaoPncpConfig) {
-			logger.warn(
-				`Contrato com data de publicação ${formatarData(contract.dataPublicacaoPncp)} menor que a data de corte ${config.dataPublicacaoPncp}, pulando.`,
-			);
-			return;
-		}
-	}
-
-	if (contract.srp === true) {
-		logger.warn("Contrato é de registro de preço, pulando armazenamento.");
-		return;
-	}
-
-	for (let index = 1; index < 1000; index++) {
-		try {
-			await fetchAndProcessItem(
-				contract,
-				index,
-				config,
-				baseUrl,
-				// itemRepository,
-				stats,
-			);
-			await delay(config.timeDelay);
-			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-		} catch (error: any) {
-			if (error.response && error.response.status === 404) {
-				break;
-			}
-			throw error;
-		}
-	}
-}
-
-async function main({
-	codigoModalidadeContratacao,
-	startDateOfProposalReceiptPeriod,
-	endDateOfProposalReceiptPeriod,
-	folderToStorage,
-	timeDelay,
-	paginaInicial,
-	uf = "SP",
-	dataPublicacaoPncp,
-}: MainConfig) {
+/**
+ * Orquestrador principal da consulta de itens do PNCP.
+ */
+async function runCollection(config: MainConfig) {
 	const stats: ProcessingStats = {
 		totalRetornados: 0,
 		totalPulados: 0,
@@ -215,82 +22,51 @@ async function main({
 	};
 
 	const getContracts = new GetContracts();
+	const processContract = new ProcessContract();
+
+	// Busca inicial para obter metadados das páginas
 	const response = await getContracts.execute({
-		codigoModalidadeContratacao,
+		...config,
+		uf: config.uf || "SP",
 		page: 1,
-		startDateOfProposalReceiptPeriod,
-		endDateOfProposalReceiptPeriod,
-		uf,
 	});
 
 	const { totalRegistros, totalPaginas } = response;
 	logger.info({ totalRegistros, totalPaginas });
 
-	for (let i = paginaInicial; i <= totalPaginas; i++) {
+	for (let i = config.paginaInicial; i <= totalPaginas; i++) {
 		logger.info(`Processando página ${i} de ${totalPaginas}`);
 
-		let pageResponse: APIResponse;
 		try {
-			logger.notice(`Buscando contratos da página ${i}...`);
-			pageResponse = await getContracts.execute({
-				codigoModalidadeContratacao,
+			const pageResponse = await getContracts.execute({
+				...config,
+				uf: config.uf || "SP",
 				page: i,
-				startDateOfProposalReceiptPeriod,
-				endDateOfProposalReceiptPeriod,
-				uf,
 			});
-			await delay(timeDelay);
-			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-		} catch (error: any) {
-			const apiErrorMsg = error.response?.data?.message || error.message;
-			throw new Error(
-				`Erro na página ${i}. Reinicie a partir desta página. Mensagem original: ${apiErrorMsg}`,
-			);
-		}
 
-		const { data: contractsData } = pageResponse;
-		if (!Array.isArray(contractsData)) {
-			console.warn(
-				`Página ${i}: contractsData não é um array, pulando página. Response:`,
-				JSON.stringify(pageResponse, null, 2),
-			);
-			logger.warn(`Página ${i}: contractsData não é um array, pulando página.`);
-			continue;
-		}
-
-		for (const contract of contractsData) {
-			try {
-				await processContract(
-					contract,
-					{
-						codigoModalidadeContratacao,
-						startDateOfProposalReceiptPeriod,
-						endDateOfProposalReceiptPeriod,
-						folderToStorage,
-						timeDelay,
-						dataPublicacaoPncp,
-					},
-					stats,
-				);
-				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-			} catch (error: any) {
-				const apiErrorMsg = error.response?.data?.message || error.message;
-				logger.error(`Erro processando contrato na página ${i}:`, apiErrorMsg);
-				throw new Error(
-					`Erro fatal na página ${i} ao processar contrato. ${apiErrorMsg}`,
-				);
+			for (const contract of pageResponse.data) {
+				await processContract.execute(contract, config, stats);
 			}
+
+			// Delay para evitar rate limiting da API
+			await delay(config.timeDelay);
+		} catch (error: unknown) {
+			const msg =
+				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
+				(error as any).response?.data?.message || (error as Error).message;
+			throw new Error(`Erro fatal na página ${i}: ${msg}`);
 		}
 	}
 
 	return stats;
 }
 
-const execAsync = promisify(exec);
-
+/**
+ * Ponto de entrada da aplicação.
+ */
 (async () => {
 	const gracefulShutdown = async (signal: string) => {
-		logger.notice(`Recebido sinal ${signal}. Encerrando graciosamente...`);
+		logger.notice(`Recebido sinal ${signal}. Encerrando processo...`);
 		process.exit(0);
 	};
 
@@ -299,39 +75,43 @@ const execAsync = promisify(exec);
 
 	try {
 		const config = await promptUser();
+		const startTime = Date.now();
 
-		const inicio = Date.now();
-		logger.info({ message: "Iniciando processo com as configurações", config });
+		logger.info({ message: "Iniciando consulta", config });
 
-		const stats = await main(config);
+		const stats = await runCollection(config);
 
-		logger.warn("Processo finalizado");
-		logger.warn("=".repeat(60));
-		logger.warn(`Total de itens retornados da API: ${stats.totalRetornados}`);
-		logger.warn(`Total de itens pulados (serviços): ${stats.totalPulados}`);
-		logger.warn(`Total de itens gravados: ${stats.totalGravados}`);
-		logger.warn("=".repeat(60));
-		const fim = Date.now();
-		const duracao = fim - inicio;
-		const duracaoEmMinutos = (duracao / 1000 / 60).toFixed(2);
-		logger.warn(`Duração do processo: ${duracaoEmMinutos} minutos`);
+		logFinalStats(stats, startTime);
 
-		try {
-			const absolutePath = path.resolve(config.folderToStorage);
-			logger.notice(
-				`Abrindo a pasta ${config.folderToStorage} no Windows Explorer...`,
-			);
-			await execAsync("explorer.exe .", { cwd: absolutePath }).catch(() => {});
-		} catch (error) {
-			logger.error("Falha ao abrir a pasta no Windows Explorer:", error);
-		}
-		// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
-	} catch (error: any) {
-		logger.error("Ocorreu um erro ao executar o processo", {
-			message: error.response?.data?.message || error.message,
-			code: error.code,
-			status: error.status,
-			stack: error.stack,
+		await openStorageFolder(config.folderToStorage);
+	} catch (error: unknown) {
+		const message = isAxiosError(error)
+			? error.response?.data?.message
+			: (error as Error).message;
+		logger.error("Falha na execução do processo", {
+			message,
+			stack: (error as Error).stack,
 		});
 	}
 })();
+
+function logFinalStats(stats: ProcessingStats, startTime: Date | number) {
+	const duration = ((Date.now() - Number(startTime)) / 1000 / 60).toFixed(2);
+
+	logger.warn("=".repeat(60));
+	logger.warn(`Total Retornados: ${stats.totalRetornados}`);
+	logger.warn(`Total Pulados:    ${stats.totalPulados}`);
+	logger.warn(`Total Gravados:   ${stats.totalGravados}`);
+	logger.warn(`Duração:          ${duration} minutos`);
+	logger.warn("=".repeat(60));
+}
+
+async function openStorageFolder(folder: string) {
+	try {
+		const absolutePath = path.resolve(folder);
+		logger.notice(`Abrindo pasta: ${folder}`);
+		await execAsync("explorer.exe .", { cwd: absolutePath }).catch(() => {});
+	} catch (error) {
+		logger.error("Erro ao abrir pasta no Explorer:", error);
+	}
+}

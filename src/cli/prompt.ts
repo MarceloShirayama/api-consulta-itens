@@ -136,7 +136,7 @@ const questions: QuestionCollection<PromptAnswers> = [
 		type: "number",
 		name: "timeDelay",
 		message: "Delay entre requisições (ms):",
-		default: 100,
+		default: 150,
 	},
 	{
 		type: "number",
