@@ -167,7 +167,7 @@ export type MainConfig = {
 	folderToStorage: string;
 	timeDelay: number;
 	paginaInicial: number;
-	uf?: string;
+	uf: string;
 	dataPublicacaoPncp?: string;
 };
 

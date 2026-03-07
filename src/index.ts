@@ -27,7 +27,7 @@ async function runCollection(config: MainConfig) {
 	// Busca inicial para obter metadados das páginas
 	const response = await getContracts.execute({
 		...config,
-		uf: config.uf || "SP",
+		uf: config.uf,
 		page: 1,
 	});
 
@@ -81,7 +81,7 @@ async function runCollection(config: MainConfig) {
 
 		const stats = await runCollection(config);
 
-		logFinalStats(stats, startTime);
+		logFinalStats(stats, startTime, config);
 
 		await openStorageFolder(config.folderToStorage);
 	} catch (error: unknown) {
@@ -95,10 +95,24 @@ async function runCollection(config: MainConfig) {
 	}
 })();
 
-function logFinalStats(stats: ProcessingStats, startTime: Date | number) {
+function logFinalStats(
+	stats: ProcessingStats,
+	startTime: Date | number,
+	config: MainConfig,
+) {
 	const duration = ((Date.now() - Number(startTime)) / 1000 / 60).toFixed(2);
 
 	logger.warn("=".repeat(60));
+	logger.warn(
+		`Data Inicial de Publicação dos Contratos: ${config.dataPublicacaoPncp}`,
+	);
+	logger.warn(
+		`Data do Contratos Consultados: de ${config.startDateOfProposalReceiptPeriod} até ${config.endDateOfProposalReceiptPeriod}`,
+	);
+	logger.warn(`UF: ${config.uf}`);
+	logger.warn(
+		`Modalidade de Contratação: ${config.codigoModalidadeContratacao}`,
+	);
 	logger.warn(`Total Retornados: ${stats.totalRetornados}`);
 	logger.warn(`Total Pulados:    ${stats.totalPulados}`);
 	logger.warn(`Total Gravados:   ${stats.totalGravados}`);
