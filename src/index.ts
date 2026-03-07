@@ -176,24 +176,6 @@ async function processContract(
 		logger.warn("Contrato é de registro de preço, pulando armazenamento.");
 		return;
 	}
-	// nào vou pular essess contratos ainda porque pode ser que eu já puchei e eles mudaram de status e, portanto, não vai atualizar
-	// deveria vericar os contratos que não estão mais aptos a paticipação e alterar o status onde está persistindo.
-	// if (contract.situacaoCompraId === 2) {
-	// 	logger.warn("Contrato Homologado, pulando armazenamento.");
-	// 	return;
-	// }
-	// if (contract.situacaoCompraId === 3) {
-	// 	logger.warn("Contrato Anulado/Revogado/Cancelado, pulando armazenamento.");
-	// 	return;
-	// }
-	// if (contract.situacaoCompraId === 4) {
-	// 	logger.warn("Contrato Deserto, pulando armazenamento.");
-	// 	return;
-	// }
-	// if (contract.situacaoCompraId === 5) {
-	// 	logger.warn("Contrato Fracassado, pulando armazenamento.");
-	// 	return;
-	// }
 
 	for (let index = 1; index < 1000; index++) {
 		try {
@@ -205,17 +187,12 @@ async function processContract(
 				// itemRepository,
 				stats,
 			);
-			// Apply delay between requests to avoid API rate limiting
 			await delay(config.timeDelay);
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
 			if (error.response && error.response.status === 404) {
-				// Optimization: Stop if an item is not found, assuming sequential items.
-				// This prevents hundreds of unnecessary 404 requests that could trigger rate limiting.
-				// Remove the break if items are not sequential.
 				break;
 			}
-			// Propagate other errors to be handled by the caller (page loop)
 			throw error;
 		}
 	}
@@ -231,12 +208,6 @@ async function main({
 	uf = "SP",
 	dataPublicacaoPncp,
 }: MainConfig) {
-	// await initializeDatabase();
-	// logger.info("Banco de dados inicializado.");
-
-	// const itemRepository = new PostgresItensRepository();
-
-	// Inicializa o objeto de estatísticas
 	const stats: ProcessingStats = {
 		totalRetornados: 0,
 		totalPulados: 0,
@@ -244,7 +215,6 @@ async function main({
 	};
 
 	const getContracts = new GetContracts();
-	// Initial request to get total pages
 	const response = await getContracts.execute({
 		codigoModalidadeContratacao,
 		page: 1,
@@ -269,7 +239,6 @@ async function main({
 				endDateOfProposalReceiptPeriod,
 				uf,
 			});
-			// Apply delay between page requests to avoid API rate limiting
 			await delay(timeDelay);
 			// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
 		} catch (error: any) {
@@ -301,7 +270,6 @@ async function main({
 						timeDelay,
 						dataPublicacaoPncp,
 					},
-					// itemRepository,
 					stats,
 				);
 				// biome-ignore lint/suspicious/noExplicitAny: <é any mesmo>
@@ -323,8 +291,6 @@ const execAsync = promisify(exec);
 (async () => {
 	const gracefulShutdown = async (signal: string) => {
 		logger.notice(`Recebido sinal ${signal}. Encerrando graciosamente...`);
-		// await closeDatabase();
-		// logger.info("Conexão com o banco de dados encerrada.");
 		process.exit(0);
 	};
 
@@ -355,8 +321,6 @@ const execAsync = promisify(exec);
 			logger.notice(
 				`Abrindo a pasta ${config.folderToStorage} no Windows Explorer...`,
 			);
-			// explorer.exe as vezes retorna código 1 mesmo funcionando,
-			// usando cwd o explorer abre na pasta correta no WSL
 			await execAsync("explorer.exe .", { cwd: absolutePath }).catch(() => {});
 		} catch (error) {
 			logger.error("Falha ao abrir a pasta no Windows Explorer:", error);
@@ -369,8 +333,5 @@ const execAsync = promisify(exec);
 			status: error.status,
 			stack: error.stack,
 		});
-	} finally {
-		// await closeDatabase();
-		// logger.info("Conexão com o banco de dados liberada.");
 	}
 })();
