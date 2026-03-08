@@ -169,6 +169,7 @@ export type MainConfig = {
 	paginaInicial: number;
 	uf: string;
 	dataPublicacaoPncp?: string;
+	processarSRP: boolean;
 };
 
 export type ProcessingStats = {
@@ -177,6 +178,7 @@ export type ProcessingStats = {
 	totalGravados: number;
 };
 
-export type PromptAnswers = Omit<MainConfig, "uf"> & {
+export type PromptAnswers = Omit<MainConfig, "uf" | "processarSRP"> & {
 	uf: string;
+	processarSRP: boolean;
 };

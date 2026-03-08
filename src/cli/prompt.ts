@@ -150,6 +150,12 @@ const questions: QuestionCollection<PromptAnswers> = [
 		message: "UF (Opcional, padrão SP):",
 		default: "SP",
 	},
+	{
+		type: "confirm",
+		name: "processarSRP",
+		message: "Deseja processar contratos SRP (Registro de Preços)?",
+		default: false,
+	},
 ];
 
 /**
@@ -173,5 +179,6 @@ export async function promptUser(): Promise<PromptAnswers> {
 		dataPublicacaoPncp: answers.dataPublicacaoPncp
 			? convertToISO(answers.dataPublicacaoPncp)
 			: undefined,
+		processarSRP: answers.processarSRP,
 	};
 }

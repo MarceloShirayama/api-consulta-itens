@@ -40,7 +40,7 @@ async function runCollection(config: MainConfig) {
 		try {
 			const pageResponse = await getContracts.execute({
 				...config,
-				uf: config.uf || "SP",
+				uf: config.uf,
 				page: i,
 			});
 
@@ -110,6 +110,9 @@ function logFinalStats(
 		`Data do Contratos Consultados: de ${config.startDateOfProposalReceiptPeriod} até ${config.endDateOfProposalReceiptPeriod}`,
 	);
 	logger.warn(`UF: ${config.uf}`);
+	logger.warn(
+		`Processados Registros de Preços: ${config.processarSRP ? "SIM" : "NÃO"}`,
+	);
 	logger.warn(
 		`Modalidade de Contratação: ${config.codigoModalidadeContratacao}`,
 	);

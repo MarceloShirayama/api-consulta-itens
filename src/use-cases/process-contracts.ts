@@ -159,7 +159,7 @@ export class ProcessContract {
 			}
 		}
 
-		if (contract.srp === true) {
+		if (contract.srp === true && !config.processarSRP) {
 			logger.warn("Contrato SRP - Registro de Preços. Pulando.");
 			return true;
 		}
