@@ -8,7 +8,7 @@ export async function retryRequest<T = any>(
 	config?: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
 	let attempt = 0;
-	const maxRetries = 5;
+	const maxRetries = 6;
 	const timeout = 30000;
 	const totalStartTime = Date.now();
 	// biome-ignore lint/suspicious/noExplicitAny: eu quero any mesmo
