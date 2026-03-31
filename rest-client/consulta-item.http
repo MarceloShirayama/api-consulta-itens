@@ -1,7 +1,7 @@
 ### consulta contrato
 GET  https://pncp.gov.br/api/consulta/v1/orgaos/62070362000106/compras/2026/21
 
-### consulta item
+### consulta item do contrato [6.3.14. Consultar Item de uma Contratação página 190 do manual de integração]
 GET https://pncp.gov.br/api/pncp/v1/orgaos/62070362000106/compras/2026/21/itens/2
 
 ### consulta contratos por página modalidade dispensa
@@ -10,3 +10,8 @@ GET https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=20501231
 ### consulta contratos por página modalidade pregão
 GET https://pncp.gov.br/api/consulta/v1/contratacoes/proposta?dataFinal=20501231&uf=sp&codigoModalidadeContratacao=6&pagina=1
 
+
+### consulta itens de um contrato [6.3.13. Consultar Itens de uma Contratação página 185 do manual de integração]
+## Observação: a resposta tem no máximo 100 itens e pelo que vi não tem paginação.
+## portanto é melhor usar consultar o endpoint de consulta de item do contrato.
+GET https://pncp.gov.br/api/pncp/v1/orgaos/46482840000139/compras/2026/188/itens

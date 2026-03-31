@@ -44,6 +44,13 @@ async function runCollection(config: MainConfig) {
 				page: i,
 			});
 
+			if (!pageResponse || !Array.isArray(pageResponse.data)) {
+				logger.warn(
+					`Página ${i} retornou dados inválidos ou vazios. Pulando página.`,
+				);
+				continue;
+			}
+
 			for (const contract of pageResponse.data) {
 				await processContract.execute(contract, config, stats);
 			}

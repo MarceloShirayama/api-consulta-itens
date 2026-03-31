@@ -1,4 +1,5 @@
 import { retryRequest } from "@/lib/retryRequest";
+import { logger } from "@/shared";
 
 import type { APIResponse } from "@/types";
 
@@ -36,6 +37,17 @@ export class GetContracts {
 		const response = await retryRequest<APIResponse>(url, {
 			timeoutErrorMessage: "Tempo de requisição excedido em get-contracts",
 		});
+
+		if (!response.data || !Array.isArray(response.data.data)) {
+			logger.warn({
+				message: "Resposta inesperada da API (data ausente ou malformado)",
+				url,
+				responseKeys: response.data
+					? Object.keys(response.data)
+					: "null/undefined",
+			});
+		}
+
 		return response.data;
 	}
 
