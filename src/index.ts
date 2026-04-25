@@ -25,24 +25,29 @@ async function runCollection(config: MainConfig) {
 	const processContract = new ProcessContract();
 
 	// Busca inicial para obter metadados das páginas
-	const response = await getContracts.execute({
+	const initialPageResponse = await getContracts.execute({
 		...config,
 		uf: config.uf,
-		page: 1,
+		page: config.paginaInicial,
 	});
 
-	const { totalRegistros, totalPaginas } = response;
+	const { totalRegistros, totalPaginas } = initialPageResponse;
 	logger.info({ totalRegistros, totalPaginas });
 
 	for (let i = config.paginaInicial; i <= totalPaginas; i++) {
 		logger.info(`Processando página ${i} de ${totalPaginas}`);
 
 		try {
-			const pageResponse = await getContracts.execute({
-				...config,
-				uf: config.uf,
-				page: i,
-			});
+			let pageResponse = initialPageResponse;
+
+			// Se não for a página inicial que já buscamos, buscamos a próxima
+			if (i !== config.paginaInicial) {
+				pageResponse = await getContracts.execute({
+					...config,
+					uf: config.uf,
+					page: i,
+				});
+			}
 
 			if (!pageResponse || !Array.isArray(pageResponse.data)) {
 				logger.warn(

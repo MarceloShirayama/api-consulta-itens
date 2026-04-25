@@ -1,4 +1,3 @@
-import { isAxiosError } from "axios";
 import { retryRequest } from "@/lib/retryRequest";
 import { logger } from "@/shared";
 import type {
@@ -26,55 +25,92 @@ export class ProcessContract {
 
 		if (this.#shouldSkipContract(contract, config)) return;
 
-		for (let index = 1; index < 1000; index++) {
-			try {
-				await this.#fetchAndProcessItem(contract, index, config, stats);
-				await delay(config.timeDelay);
-			} catch (error: unknown) {
-				if (isAxiosError(error) && error.response?.status === 404) break;
-				throw error;
+		try {
+			const items = await this.#fetchAllItems(contract, config);
+
+			for (const itemData of items) {
+				stats.totalRetornados++;
+				const index = items.indexOf(itemData) + 1;
+				const outputItem = this.#mapToOutputItem(contract, index, itemData);
+
+				if (this.#isService(itemData)) {
+					logger.warn(`Pulando serviço: ${itemData.descricao}`);
+					stats.totalPulados++;
+					const skippedParams = {
+						...config,
+						itens: [outputItem],
+						folderToStorage: "_itens_skipped",
+					};
+					await saveItemsToJSON(skippedParams);
+					await saveToXLXS(skippedParams);
+					continue;
+				}
+
+				stats.totalGravados++;
+				const storageParams = { ...config, itens: [outputItem] };
+				await saveItemsToJSON(storageParams);
+				await saveToXLXS(storageParams);
 			}
+
+			// Delay após processar todos os itens do contrato
+			await delay(config.timeDelay);
+		} catch (error: unknown) {
+			logger.error(
+				`Erro ao processar itens do contrato ${contract.numeroCompra}/${contract.anoCompra}`,
+				error,
+			);
+			throw error;
 		}
 	}
 
 	/**
-	 * Busca e processa um item individual.
+	 * Busca itens de um contrato usando estratégia híbrida (Lote + Individual).
 	 */
-	async #fetchAndProcessItem(
+	async #fetchAllItems(
 		contract: Contract,
-		index: number,
 		config: Omit<MainConfig, "paginaInicial">,
-		stats: ProcessingStats,
-	): Promise<void> {
+	): Promise<Item[]> {
 		const baseUrl = process.env.PNCP_INTEGRATION_URL;
-		const url = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens/${index}`;
+		const bulkUrl = `${baseUrl}/v1/orgaos/${contract.orgaoEntidade.cnpj}/compras/${contract.anoCompra}/${contract.sequencialCompra}/itens`;
 
-		const response = await retryRequest<Item>(url, {
-			timeoutErrorMessage: `Erro ao buscar item ${index} - Contrato ${contract.numeroCompra}/${contract.anoCompra}`,
+		// 1. Busca os primeiros itens em lote
+		const response = await retryRequest<Item[]>(bulkUrl, {
+			timeoutErrorMessage: `Erro ao buscar itens em lote do Contrato ${contract.numeroCompra}/${contract.anoCompra}`,
 		});
 
-		const itemData = response.data;
-		stats.totalRetornados++;
+		const allItems: Item[] = Array.isArray(response.data) ? response.data : [];
 
-		const outputItem = this.#mapToOutputItem(contract, index, itemData);
+		// 2. Busca individual adaptativa.
+		// Independentemente de quantos itens vieram no lote, sempre tentamos buscar o próximo índice.
+		// Se o próximo item (allItems.length + 1) existir, continuamos a busca individualmente até o 404.
+		// Isso torna o código resiliente a qualquer mudança no limite padrão da API.
+		const nextIndex = allItems.length + 1;
+		logger.notice(
+			`Lote processado (${allItems.length} itens). Verificando continuidade do contrato a partir do item ${nextIndex}...`,
+		);
 
-		if (this.#isService(itemData)) {
-			logger.warn(`Pulando serviço: ${itemData.descricao}`);
-			stats.totalPulados++;
-			const skippedParams = {
-				...config,
-				itens: [outputItem],
-				folderToStorage: "_itens_skipped",
-			};
-			await saveItemsToJSON(skippedParams);
-			await saveToXLXS(skippedParams);
-			return;
+		for (let index = nextIndex; index < 1000; index++) {
+			try {
+				const itemUrl = `${bulkUrl}/${index}`;
+				const itemResponse = await retryRequest<Item>(itemUrl, {
+					timeoutErrorMessage: `Erro ao buscar item individual ${index}`,
+				});
+
+				if (itemResponse.data) {
+					allItems.push(itemResponse.data);
+					await delay(config.timeDelay); // Delay entre requisições individuais
+				} else {
+					break;
+				}
+			} catch (error: unknown) {
+				// 404 indica fim dos itens
+				// biome-ignore lint/suspicious/noExplicitAny: <axios error>
+				if ((error as any).response?.status === 404) break;
+				throw error;
+			}
 		}
 
-		stats.totalGravados++;
-		const storageParams = { ...config, itens: [outputItem] };
-		await saveItemsToJSON(storageParams);
-		await saveToXLXS(storageParams);
+		return allItems;
 	}
 
 	/**
