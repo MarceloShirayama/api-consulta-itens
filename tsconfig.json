@@ -11,7 +11,9 @@
 		"skipLibCheck": true,
 		"moduleResolution": "node16",
 		"types": ["node"],
-		"baseUrl": ".",
+		"forceConsistentCasingInFileNames": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
 		"paths": {
 			"@/*": ["./src/*"]
 		}
