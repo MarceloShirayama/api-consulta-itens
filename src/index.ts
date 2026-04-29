@@ -5,7 +5,7 @@ import { isAxiosError } from "axios";
 import { logger } from "@/shared";
 import type { MainConfig, ProcessingStats } from "@/types";
 import { GetContracts, ProcessContract } from "@/use-cases";
-import { delay } from "@/utils";
+import { delay, formatarData, parseBrDateToISO } from "@/utils";
 import "./_config/module-alias";
 import { promptUser } from "@/cli/prompt";
 
@@ -34,13 +34,18 @@ async function runCollection(config: MainConfig) {
 	const { totalRegistros, totalPaginas } = initialPageResponse;
 	logger.info({ totalRegistros, totalPaginas });
 
-	for (let i = config.paginaInicial; i <= totalPaginas; i++) {
+	let pagesWithAllOldContracts = 0;
+	const cutoffDateMs = config.dataPublicacaoPncp
+		? new Date(parseBrDateToISO(config.dataPublicacaoPncp)).getTime()
+		: null;
+
+	for (let i = totalPaginas; i >= config.paginaInicial; i--) {
 		logger.info(`Processando página ${i} de ${totalPaginas}`);
 
 		try {
 			let pageResponse = initialPageResponse;
 
-			// Se não for a página inicial que já buscamos, buscamos a próxima
+			// Se não é a página inicial que já buscamos, buscamos do zero
 			if (i !== config.paginaInicial) {
 				pageResponse = await getContracts.execute({
 					...config,
@@ -56,8 +61,38 @@ async function runCollection(config: MainConfig) {
 				continue;
 			}
 
+			let hasNewContractsInPage = false;
+
 			for (const contract of pageResponse.data) {
+				if (cutoffDateMs) {
+					// Verifica se o contrato é >= à data de corte
+					const pubDateMs = new Date(
+						parseBrDateToISO(formatarData(contract.dataPublicacaoPncp)),
+					).getTime();
+
+					if (pubDateMs >= cutoffDateMs) {
+						hasNewContractsInPage = true;
+					}
+				} else {
+					hasNewContractsInPage = true; // Se não houver data de corte, assume que são sempre úteis
+				}
+
 				await processContract.execute(contract, config, stats);
+			}
+
+			// Se a data de corte for informada, faz a verificação
+			if (cutoffDateMs) {
+				if (!hasNewContractsInPage) {
+					pagesWithAllOldContracts++;
+					if (pagesWithAllOldContracts >= 2) {
+						logger.warn(
+							`Identificadas 2 páginas consecutivas contendo apenas contratos anteriores à data de corte (${config.dataPublicacaoPncp}). As requisições serão interrompidas por segurança.`,
+						);
+						break;
+					}
+				} else {
+					pagesWithAllOldContracts = 0; // reseta se encontrar contratos novos ou exatos
+				}
 			}
 
 			// Delay para evitar rate limiting da API
